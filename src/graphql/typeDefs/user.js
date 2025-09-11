@@ -1,15 +1,13 @@
 const { gql } = require('graphql-tag');
 
 const userTypeDefs = gql`
-	scalar Upload
-
 	type User {
 		id: ID!
 		firstName: String!
 		lastName: String!
 		username: String!
 		email: String!
-		avatar: Upload
+		avatar: String
 		createdAt: String
 	}
 
@@ -21,9 +19,21 @@ const userTypeDefs = gql`
 		user: User
 	}
 
+	type UserResponse {
+		success: Boolean!
+		message: String!
+		user: User
+	}
+
+	type UsersResponse {
+		success: Boolean!
+		message: String!
+		users: [User!]
+	}
+
 	extend type Query {
-		me: User
-		users: [User]
+		me: UserResponse!
+		users: UsersResponse!
 	}
 
 	extend type Mutation {
@@ -35,7 +45,7 @@ const userTypeDefs = gql`
 
 		resetPassword(token: String!, newPassword: String!): AuthResponse
 
-		updateProfile(email: String, avatar: Upload, password: String): AuthResponse
+		updateProfile(email: String, avatar: String, password: String): AuthResponse
 	}
 `;
 

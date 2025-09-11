@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 const { uploadImage } = require('./upload.service');
-const { registerSchema, loginSchema, updateProfileSchema } = require('../utils/validators');
+const { registerSchema, loginSchema, updateProfileSchema } = require('../validators/userValidator');
 
 const generateToken = (user) => {
 	return jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -12,7 +12,7 @@ const generateResetToken = (user) => {
 	return jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '15m' });
 };
 
-const registerUser = async ({ username, email, password, avatar }) => {
+const registerUser = async ({ firstName, lastName, username, email, password, avatar }) => {
 	try {
 		await registerSchema.validate({ username, email, password, avatar });
 
@@ -28,6 +28,8 @@ const registerUser = async ({ username, email, password, avatar }) => {
 		}
 
 		const user = await User.create({
+			firstName,
+			lastName,
 			username,
 			email,
 			password,
