@@ -1,3 +1,3 @@
 const userResolvers = require('./resolvers/user.resolver');
-
-module.exports = [userResolvers];
+const mechanicResolvers = require('./resolvers/mechanic.resolver');
+module.exports = [userResolvers, mechanicResolvers];
