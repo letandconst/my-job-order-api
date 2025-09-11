@@ -7,6 +7,7 @@ require('dotenv').config();
 
 const typeDefs = require('./graphql/typeDefs');
 const resolvers = require('./graphql/resolvers');
+const { authMiddleware } = require('./middlewares/auth');
 require('./config/db')(); // connect to MongoDB
 
 const app = express();
@@ -18,6 +19,7 @@ const { verifyToken } = require('./services/auth.service');
 const server = new ApolloServer({
 	typeDefs,
 	resolvers,
+	context: authMiddleware,
 });
 
 (async () => {

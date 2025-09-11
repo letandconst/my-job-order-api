@@ -132,7 +132,6 @@ const resetPassword = async ({ token, newPassword }) => {
 
 const updateProfile = async (userId, args) => {
 	try {
-		// ✅ Validate with Yup
 		await updateProfileSchema.validate(args);
 
 		const user = await User.findById(userId);
@@ -140,19 +139,38 @@ const updateProfile = async (userId, args) => {
 			return { success: false, message: 'User not found.' };
 		}
 
-		if (args.email) user.email = args.email;
-		if (args.password) user.password = args.password;
+		let updatedSensitive = false;
 
+		if (args.email && args.email !== user.email) {
+			const existingUser = await User.findOne({ email: args.email });
+			if (existingUser) {
+				return { success: false, message: 'Email already exists.' };
+			}
+
+			user.email = args.email;
+			updatedSensitive = true;
+		}
+
+		if (args.password) {
+			user.password = args.password;
+			updatedSensitive = true;
+		}
 		if (args.avatar) {
-			const uploadResult = await uploadImage(args.avatar, 'avatars');
-			user.avatar = uploadResult.secure_url;
+			user.avatar = args.avatar;
 		}
 
 		await user.save();
 
+		// ✅ Generate new token if email/password changed
+		let token = null;
+		if (updatedSensitive) {
+			token = generateToken(user);
+		}
+
 		return {
 			success: true,
 			message: 'Profile updated successfully',
+			token,
 			user,
 		};
 	} catch (err) {

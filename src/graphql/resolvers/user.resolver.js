@@ -1,4 +1,4 @@
-const { registerUser, loginUser, forgotPassword, resetPassword } = require('../../services/auth.service');
+const { registerUser, loginUser, forgotPassword, resetPassword, updateProfile } = require('../../services/auth.service');
 
 const userResolvers = {
 	Query: {
@@ -21,6 +21,13 @@ const userResolvers = {
 		},
 		forgotPassword: async (_, args) => forgotPassword(args),
 		resetPassword: async (_, args) => resetPassword(args),
+		updateProfile: async (_, args, context) => {
+			if (!context.user) {
+				return { success: false, message: 'Unauthorized' };
+			}
+
+			return await updateProfile(context.user.id, args);
+		},
 	},
 };
 
