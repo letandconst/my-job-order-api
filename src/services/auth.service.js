@@ -4,6 +4,7 @@ const User = require('../models/User');
 const { uploadImage } = require('./upload.service');
 const { registerSchema, loginSchema, updateProfileSchema } = require('../validators/userValidator');
 const { formatResponse } = require('../utils/response');
+const { sendMail } = require('../services/mail.service');
 
 // ----------------------
 // Token Helpers
@@ -102,9 +103,15 @@ const forgotPassword = async ({ email }) => {
 		}
 
 		const resetToken = generateResetToken(user);
+		const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
 
 		// TODO: integrate email service later
-		return formatResponse(200, 'Password reset token generated.', { token: resetToken });
+
+		if (!mailResult.success) {
+			return formatResponse(500, 'Failed to send reset email.');
+		}
+
+		return formatResponse(200, 'Password reset link sent to your email.');
 	} catch (err) {
 		return formatResponse(500, err.message || 'Failed to generate reset token.');
 	}
