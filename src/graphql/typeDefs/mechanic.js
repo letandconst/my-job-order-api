@@ -21,11 +21,9 @@ const mechanicTypeDefs = gql`
 		updatedAt: String!
 	}
 
-	type MechanicResponse {
-		success: Boolean!
-		message: String!
-		mechanic: Mechanic
-		mechanics: [Mechanic]
+	extend type Query {
+		listMechanics: BaseResponse!
+		listMechanic(id: ID!): BaseResponse!
 	}
 
 	input CreateMechanicInput {
@@ -41,15 +39,10 @@ const mechanicTypeDefs = gql`
 		dateJoined: String
 	}
 
-	extend type Query {
-		mechanics: MechanicResponse!
-		mechanic(id: ID!): MechanicResponse!
-	}
-
 	extend type Mutation {
-		createMechanic(input: CreateMechanicInput!): MechanicResponse!
-		updateMechanic(id: ID!, name: String, address: String, phoneNumber: String, birthday: String, emergencyContactName: String, emergencyContactPhone: String, bio: String, avatar: String, specialties: [String]): MechanicResponse!
-		deleteMechanic(id: ID!): MechanicResponse!
+		createMechanic(input: CreateMechanicInput!): BaseResponse!
+		updateMechanic(id: ID!, name: String, address: String, phoneNumber: String, birthday: String, emergencyContactName: String, emergencyContactPhone: String, bio: String, avatar: String, specialties: [String], dateJoined: String): BaseResponse!
+		deleteMechanic(id: ID!): BaseResponse!
 	}
 `;
 
