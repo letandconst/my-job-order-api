@@ -3,6 +3,7 @@ const { gql } = require('graphql-tag');
 const userTypeDefs = require('./typeDefs/user');
 const mechanicTypeDefs = require('./typeDefs/mechanic');
 const serviceTypeDefs = require('./typeDefs/serviceType');
+const partTypeDefs = require('./typeDefs/part');
 
 const baseTypeDefs = gql`
 	scalar JSON
@@ -21,4 +22,4 @@ const baseTypeDefs = gql`
 	type Mutation
 `;
 
-module.exports = [baseTypeDefs, userTypeDefs, mechanicTypeDefs, serviceTypeDefs];
+module.exports = [baseTypeDefs, userTypeDefs, mechanicTypeDefs, serviceTypeDefs, partTypeDefs];
