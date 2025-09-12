@@ -11,41 +11,29 @@ const userTypeDefs = gql`
 		createdAt: String
 	}
 
-	# General auth response
-	type AuthResponse {
-		success: Boolean!
+	"""
+	Generic response wrapper for all services.
+	"""
+	type BaseResponse {
+		statusCode: Int!
 		message: String!
-		token: String
-		user: User
+		data: JSON
 	}
 
-	type UserResponse {
-		success: Boolean!
-		message: String!
-		user: User
-	}
-
-	type UsersResponse {
-		success: Boolean!
-		message: String!
-		users: [User!]
-	}
+	# Scalars
+	scalar JSON
 
 	extend type Query {
-		me: UserResponse!
-		users: UsersResponse!
+		me: BaseResponse!
+		users: BaseResponse!
 	}
 
 	extend type Mutation {
-		register(firstName: String!, lastName: String!, username: String!, email: String!, password: String!, avatar: String): AuthResponse
-
-		login(email: String, username: String, password: String!): AuthResponse
-
-		forgotPassword(email: String!): AuthResponse
-
-		resetPassword(token: String!, newPassword: String!): AuthResponse
-
-		updateProfile(email: String, avatar: String, password: String): AuthResponse
+		register(firstName: String!, lastName: String!, username: String!, email: String!, password: String!, avatar: String): BaseResponse
+		login(email: String, username: String, password: String!): BaseResponse
+		forgotPassword(email: String!): BaseResponse
+		resetPassword(token: String!, newPassword: String!): BaseResponse
+		updateProfile(email: String, avatar: String, password: String): BaseResponse
 	}
 `;
 

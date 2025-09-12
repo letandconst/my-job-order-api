@@ -1,46 +1,44 @@
 const { registerUser, loginUser, forgotPassword, resetPassword, updateProfile } = require('../../services/auth.service');
 const User = require('../../models/User');
+const { formatResponse } = require('../../utils/response');
 
 const userResolvers = {
 	Query: {
 		me: async (_, __, { user }) => {
 			try {
-				if (!user) return { success: false, message: 'Not authenticated', user: null };
+				if (!user) {
+					return formatResponse(401, 'Not authenticated.');
+				}
 
 				const fullUser = await User.findById(user.id);
+				if (!fullUser) {
+					return formatResponse(404, 'User not found.');
+				}
 
-				if (!fullUser) return { success: false, message: 'User not found', user: null };
-
-				return { success: true, message: 'User retrieved successfully', user: fullUser };
+				return formatResponse(200, 'User retrieved successfully.', { user: fullUser });
 			} catch (err) {
-				return { success: false, message: err.message, user: null };
+				return formatResponse(500, err.message || 'Failed to fetch user.');
 			}
 		},
 		users: async () => {
 			try {
 				const users = await User.find();
-				return { success: true, message: 'Users retrieved successfully', users };
+				return formatResponse(200, 'Users retrieved successfully.', { users });
 			} catch (err) {
-				return { success: false, message: err.message, users: [] };
+				return formatResponse(500, err.message || 'Failed to fetch users.');
 			}
 		},
 	},
 	Mutation: {
 		register: async (_, args) => registerUser(args),
-		login: async (_, args) => {
-			if (!args.email && !args.username) {
-				return { success: false, message: 'Please enter either email or username' };
-			}
-			return loginUser(args);
-		},
+		login: async (_, args) => loginUser(args),
 		forgotPassword: async (_, args) => forgotPassword(args),
 		resetPassword: async (_, args) => resetPassword(args),
-		updateProfile: async (_, args, context) => {
-			if (!context.user) {
-				return { success: false, message: 'Unauthorized' };
+		updateProfile: async (_, args, { user }) => {
+			if (!user) {
+				return formatResponse(401, 'Unauthorized.');
 			}
-
-			return await updateProfile(context.user.id, args);
+			return updateProfile(user.id, args);
 		},
 	},
 };

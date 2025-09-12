@@ -3,6 +3,11 @@ const User = require('../models/User');
 
 const { uploadImage } = require('./upload.service');
 const { registerSchema, loginSchema, updateProfileSchema } = require('../validators/userValidator');
+const { formatResponse } = require('../utils/response');
+
+// ----------------------
+// Token Helpers
+// ----------------------
 
 const generateToken = (user) => {
 	return jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -12,13 +17,17 @@ const generateResetToken = (user) => {
 	return jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '15m' });
 };
 
+// ----------------------
+// Register User
+// ----------------------
+
 const registerUser = async ({ firstName, lastName, username, email, password, avatar }) => {
 	try {
 		await registerSchema.validate({ username, email, password, avatar });
 
 		const existingUser = await User.findOne({ $or: [{ email }, { username }] });
 		if (existingUser) {
-			return { success: false, message: 'Email or Username already taken.' };
+			return formatResponse(409, 'Email or Username already taken.');
 		}
 
 		let avatarUrl = null;
@@ -38,99 +47,92 @@ const registerUser = async ({ firstName, lastName, username, email, password, av
 
 		const token = generateToken(user);
 
-		return {
-			success: true,
-			message: 'User registered successfully',
-			token,
-			user,
-		};
+		return formatResponse(201, 'User registered successfully.', { user, token });
 	} catch (err) {
-		return { success: false, message: err.message || 'Registration failed' };
+		return formatResponse(400, err.message || 'Registration failed.');
 	}
 };
 
+// ----------------------
+// Login User
+// ----------------------
+
 const loginUser = async ({ email, username, password }) => {
 	try {
+		// Validate input
 		await loginSchema.validate({ email, username, password });
 
 		if (!email && !username) {
-			return { success: false, message: 'Please provide email or username.' };
+			return formatResponse(400, 'Please provide either an email or username.');
 		}
 
+		// Find user by email or username
 		const user = await User.findOne({
 			$or: [{ email }, { username }],
 		});
 
 		if (!user) {
-			return { success: false, message: 'No account found with this email or username.' };
+			return formatResponse(404, 'No account found with this email or username.');
 		}
 
+		// Validate password
 		const isMatch = await user.matchPassword(password);
 		if (!isMatch) {
-			return { success: false, message: 'Incorrect password.' };
+			return formatResponse(401, 'Incorrect password.');
 		}
 
+		// Generate token
 		const token = generateToken(user);
 
-		return {
-			success: true,
-			message: 'Login successful',
-			token,
-			user,
-		};
+		return formatResponse(200, 'Login successful', { user, token });
 	} catch (err) {
-		return { success: false, message: err.message || 'Login failed' };
+		return formatResponse(400, err.message || 'Login failed.');
 	}
 };
+
+// ----------------------
+// Forgot Password
+// ----------------------
 
 const forgotPassword = async ({ email }) => {
 	try {
 		const user = await User.findOne({ email });
 		if (!user) {
-			return { success: false, message: 'No account found with this email' };
+			return formatResponse(404, 'No account found with this email.');
 		}
 
 		const resetToken = generateResetToken(user);
 
-		// TODO: send email with reset link (later with mailerService)
-		// For now, just return token for testing
-		return {
-			success: true,
-			message: 'Password reset token generated',
-			token: resetToken,
-		};
+		// TODO: integrate email service later
+		return formatResponse(200, 'Password reset token generated.', { token: resetToken });
 	} catch (err) {
-		console.error(err);
-		return {
-			success: false,
-			message: 'Failed to generate reset token',
-		};
+		return formatResponse(500, err.message || 'Failed to generate reset token.');
 	}
 };
+
+// ----------------------
+// Reset Password
+// ----------------------
 
 const resetPassword = async ({ token, newPassword }) => {
 	try {
 		const decoded = jwt.verify(token, process.env.JWT_SECRET);
 		const user = await User.findById(decoded.id);
 		if (!user) {
-			return { success: false, message: 'Invalid or expired token' };
+			return formatResponse(400, 'Invalid or expired token.');
 		}
 
 		user.password = newPassword;
 		await user.save();
 
-		return {
-			success: true,
-			message: 'Password reset successful',
-		};
+		return formatResponse(200, 'Password reset successful.');
 	} catch (err) {
-		console.error(err);
-		return {
-			success: false,
-			message: 'Password reset failed. Token may be invalid or expired.',
-		};
+		return formatResponse(400, err.message || 'Password reset failed. Token may be invalid or expired.');
 	}
 };
+// ----------------------
+// Update Profile
+// ----------------------
 
 const updateProfile = async (userId, args) => {
 	try {
@@ -138,7 +140,7 @@ const updateProfile = async (userId, args) => {
 
 		const user = await User.findById(userId);
 		if (!user) {
-			return { success: false, message: 'User not found.' };
+			return formatResponse(404, 'User not found.');
 		}
 
 		let updatedSensitive = false;
@@ -146,9 +148,8 @@ const updateProfile = async (userId, args) => {
 		if (args.email && args.email !== user.email) {
 			const existingUser = await User.findOne({ email: args.email });
 			if (existingUser) {
-				return { success: false, message: 'Email already exists.' };
+				return formatResponse(409, 'Email already exists.');
 			}
-
 			user.email = args.email;
 			updatedSensitive = true;
 		}
@@ -157,28 +158,27 @@ const updateProfile = async (userId, args) => {
 			user.password = args.password;
 			updatedSensitive = true;
 		}
+
 		if (args.avatar) {
 			user.avatar = args.avatar;
 		}
 
 		await user.save();
 
-		// ✅ Generate new token if email/password changed
 		let token = null;
 		if (updatedSensitive) {
 			token = generateToken(user);
 		}
 
-		return {
-			success: true,
-			message: 'Profile updated successfully',
-			token,
-			user,
-		};
+		return formatResponse(200, 'Profile updated successfully.', { user, token });
 	} catch (err) {
-		return { success: false, message: err.message || 'Profile update failed' };
+		return formatResponse(400, err.message || 'Profile update failed.');
 	}
 };
+
+// ----------------------
+// Verify Token
+// ----------------------
 
 const verifyToken = (token) => {
 	try {
