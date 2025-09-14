@@ -5,15 +5,9 @@ const { uploadImage } = require('./upload.service');
 const { registerSchema, loginSchema, updateProfileSchema } = require('../validators/userValidator');
 const { formatResponse } = require('../utils/response');
 const { sendTemplateMail } = require('../services/mail.service');
+const { generateAccessToken, generateRefreshToken } = require('../utils/token');
 
-// ----------------------
-// Token Helpers
-// ----------------------
-
-const generateToken = (user) => {
-	return jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '7d' });
-};
-
+// Reset password token (separate purpose)
 const generateResetToken = (user) => {
 	return jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '15m' });
 };
@@ -58,7 +52,7 @@ const registerUser = async ({ firstName, lastName, username, email, password, av
 // Login User
 // ----------------------
 
-const loginUser = async ({ email, username, password }) => {
+const loginUser = async ({ email, username, password }, { res }) => {
 	try {
 		// Validate input
 		await loginSchema.validate({ email, username, password });
@@ -82,10 +76,27 @@ const loginUser = async ({ email, username, password }) => {
 			return formatResponse(401, 'Incorrect password.');
 		}
 
-		// Generate token
-		const token = generateToken(user);
+		// Generate tokens
+		const accessToken = generateAccessToken(user);
+		const refreshToken = generateRefreshToken(user);
 
-		return formatResponse(200, 'Login successful', { user, token });
+		// Store tokens in cookies
+		res.cookie('accessToken', accessToken, {
+			httpOnly: true,
+			secure: process.env.NODE_ENV === 'production',
+			sameSite: 'strict',
+			maxAge: 15 * 60 * 1000, // 15 min
+		});
+
+		res.cookie('refreshToken', refreshToken, {
+			httpOnly: true,
+			secure: process.env.NODE_ENV === 'production',
+			sameSite: 'strict',
+			maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+		});
+
+		// Return user info only
+		return formatResponse(200, 'Login successful.', { user });
 	} catch (err) {
 		return formatResponse(400, err.message || 'Login failed.');
 	}

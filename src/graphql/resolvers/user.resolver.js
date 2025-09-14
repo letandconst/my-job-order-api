@@ -31,7 +31,38 @@ const userResolvers = {
 	},
 	Mutation: {
 		register: async (_, args) => registerUser(args),
-		login: async (_, args) => loginUser(args),
+		login: async (_, args, { res }) => loginUser(args, { res }),
+		refreshToken: async (_, __, { req, res }) => {
+			try {
+				const token = req.cookies.refreshToken;
+				if (!token) {
+					return formatResponse(401, 'No refresh token found. Please log in again.');
+				}
+
+				const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+
+				const newAccessToken = generateAccessToken({
+					_id: decoded.id,
+					email: decoded.email,
+				});
+
+				res.cookie('accessToken', newAccessToken, {
+					httpOnly: true,
+					secure: process.env.NODE_ENV === 'production',
+					sameSite: 'strict',
+					maxAge: 15 * 60 * 1000, // 15 min
+				});
+
+				return formatResponse(200, 'Access token refreshed');
+			} catch (err) {
+				return formatResponse(403, 'Invalid or expired refresh token. Please log in again.');
+			}
+		},
+		logout: async (_, __, { res }) => {
+			res.clearCookie('accessToken');
+			res.clearCookie('refreshToken');
+			return formatResponse(200, 'Logged out successfully');
+		},
 		forgotPassword: async (_, args) => forgotPassword(args),
 		resetPassword: async (_, args) => resetPassword(args),
 		updateProfile: async (_, args, { user }) => {

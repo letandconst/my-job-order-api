@@ -2,6 +2,7 @@ const express = require('express');
 const { ApolloServer } = require('@apollo/server');
 const { expressMiddleware } = require('@as-integrations/express5');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 
 require('dotenv').config();
 
@@ -25,19 +26,31 @@ const server = new ApolloServer({
 (async () => {
 	await server.start();
 
+	app.use(cors());
+	app.use(express.json());
+	app.use(cookieParser());
+
 	app.use(
 		'/graphql',
-		cors(),
-		express.json(),
 		expressMiddleware(server, {
-			context: async ({ req }) => {
-				const authHeader = req.headers.authorization || '';
-				if (authHeader.startsWith('Bearer ')) {
-					const token = authHeader.split(' ')[1];
-					const user = verifyToken(token);
-					if (user) return { user };
+			context: async ({ req, res }) => {
+				let user = null;
+
+				// First check for accessToken cookie
+				if (req.cookies?.accessToken) {
+					user = verifyToken(req.cookies.accessToken, process.env.JWT_SECRET);
 				}
-				return {};
+
+				// Fallback: check Authorization header (Bearer token)
+				if (!user) {
+					const authHeader = req.headers.authorization || '';
+					if (authHeader.startsWith('Bearer ')) {
+						const token = authHeader.split(' ')[1];
+						user = verifyToken(token, process.env.JWT_SECRET);
+					}
+				}
+
+				return { req, res, user };
 			},
 		})
 	);
