@@ -4,7 +4,7 @@ const User = require('../models/User');
 const { uploadImage } = require('./upload.service');
 const { registerSchema, loginSchema, updateProfileSchema } = require('../validators/userValidator');
 const { formatResponse } = require('../utils/response');
-const { sendMail } = require('../services/mail.service');
+const { sendTemplateMail } = require('../services/mail.service');
 
 // ----------------------
 // Token Helpers
@@ -105,7 +105,15 @@ const forgotPassword = async ({ email }) => {
 		const resetToken = generateResetToken(user);
 		const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
 
-		// TODO: integrate email service later
+		// send using Brevo template
+		const mailResult = await sendTemplateMail({
+			to: user.email,
+			templateId: parseInt(process.env.BREVO_RESET_TEMPLATE_ID),
+			params: {
+				FIRSTNAME: user.firstName,
+				RESET_LINK: resetLink,
+			},
+		});
 
 		if (!mailResult.success) {
 			return formatResponse(500, 'Failed to send reset email.');

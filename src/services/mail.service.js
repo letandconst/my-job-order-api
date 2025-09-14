@@ -1,30 +1,29 @@
-const nodemailer = require('nodemailer');
-const mg = require('nodemailer-mailgun-transport');
+const SibApiV3Sdk = require('sib-api-v3-sdk');
 
-const auth = {
-	auth: {
-		api_key: process.env.MAILGUN_API_KEY,
-		domain: process.env.MAILGUN_DOMAIN,
-	},
-};
+// configure Brevo client
+let defaultClient = SibApiV3Sdk.ApiClient.instance;
+let apiKey = defaultClient.authentications['api-key'];
+apiKey.apiKey = process.env.BREVO_API_KEY;
 
-const transporter = nodemailer.createTransport(mg(auth));
+const tranEmailApi = new SibApiV3Sdk.TransactionalEmailsApi();
 
-const sendMail = async ({ to, subject, text, html }) => {
+/**
+ * Send email using Brevo template
+ */
+const sendTemplateMail = async ({ to, templateId, params }) => {
 	try {
-		const info = await transporter.sendMail({
-			from: process.env.MAIL_FROM || `no-reply@${process.env.MAILGUN_DOMAIN}`,
-			to,
-			subject,
-			text,
-			html,
-		});
+		const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+		sendSmtpEmail.to = [{ email: to }];
+		sendSmtpEmail.templateId = templateId;
+		sendSmtpEmail.params = params;
+		sendSmtpEmail.sender = { email: process.env.MAIL_FROM };
 
-		return { success: true, info };
+		const response = await tranEmailApi.sendTransacEmail(sendSmtpEmail);
+		return { success: true, response };
 	} catch (err) {
-		console.error('Mailgun error:', err);
+		console.error('Brevo template error:', err);
 		return { success: false, error: err.message };
 	}
 };
 
-module.exports = { sendMail };
+module.exports = { sendTemplateMail };
