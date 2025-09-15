@@ -40,7 +40,7 @@ const createMechanic = async (args) => {
 const getMechanics = async () => {
 	try {
 		const mechanics = await Mechanic.find();
-		return formatResponse(200, 'Mechanics retrieved successfully.', { mechanics });
+		return formatResponse(200, 'Mechanics retrieved successfully.', mechanics);
 	} catch (err) {
 		return formatResponse(500, err.message || 'Failed to fetch mechanics.');
 	}

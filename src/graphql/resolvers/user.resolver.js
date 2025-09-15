@@ -23,7 +23,7 @@ const userResolvers = {
 		listUsers: async () => {
 			try {
 				const users = await User.find();
-				return formatResponse(200, 'Users retrieved successfully.', { users });
+				return formatResponse(200, 'Users retrieved successfully.', users);
 			} catch (err) {
 				return formatResponse(500, err.message || 'Failed to fetch users.');
 			}

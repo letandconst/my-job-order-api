@@ -11,18 +11,6 @@ const userTypeDefs = gql`
 		createdAt: String
 	}
 
-	"""
-	Generic response wrapper for all services.
-	"""
-	type BaseResponse {
-		statusCode: Int!
-		message: String!
-		data: JSON
-	}
-
-	# Scalars
-	scalar JSON
-
 	extend type Query {
 		me: BaseResponse!
 		listUsers: BaseResponse!

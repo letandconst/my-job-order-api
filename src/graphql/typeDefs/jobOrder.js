@@ -1,8 +1,6 @@
 const { gql } = require('graphql-tag');
 
 const jobOrderTypeDefs = gql`
-	scalar JSON
-
 	type JobOrder {
 		id: ID!
 		customerName: String!
@@ -13,7 +11,6 @@ const jobOrderTypeDefs = gql`
 		assignedMechanic: Mechanic! # reference to Mechanic
 		parts: [JobOrderPart!]!
 		workRequested: [JobOrderService!]!
-
 		totalLabor: Float!
 		totalPartsPrice: Float!
 		total: Float!

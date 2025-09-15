@@ -28,7 +28,7 @@ const createServiceType = async (args) => {
 const getServiceTypes = async () => {
 	try {
 		const serviceTypes = await ServiceType.find();
-		return formatResponse(200, 'Service types retrieved successfully', { serviceTypes });
+		return formatResponse(200, 'Service types retrieved successfully', serviceTypes);
 	} catch (err) {
 		return formatResponse(500, err.message || 'Failed to retrieve service types');
 	}
