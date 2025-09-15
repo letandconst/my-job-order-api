@@ -114,7 +114,7 @@ const forgotPassword = async ({ email }) => {
 		}
 
 		const resetToken = generateResetToken(user);
-		const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+		const resetLink = `${process.env.FRONTEND_URL}/auth/reset-password?token=${resetToken}`;
 
 		// send using Brevo template
 		const mailResult = await sendTemplateMail({
