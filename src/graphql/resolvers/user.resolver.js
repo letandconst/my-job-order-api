@@ -20,7 +20,7 @@ const userResolvers = {
 				return formatResponse(500, err.message || 'Failed to fetch user.');
 			}
 		},
-		users: async () => {
+		listUsers: async () => {
 			try {
 				const users = await User.find();
 				return formatResponse(200, 'Users retrieved successfully.', { users });

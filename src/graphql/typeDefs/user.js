@@ -25,7 +25,7 @@ const userTypeDefs = gql`
 
 	extend type Query {
 		me: BaseResponse!
-		users: BaseResponse!
+		listUsers: BaseResponse!
 	}
 
 	extend type Mutation {
