@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-const { uploadImage } = require('./upload.service');
 const { registerSchema, loginSchema, updateProfileSchema } = require('../validators/userValidator');
 const { formatResponse } = require('../utils/response');
 const { sendTemplateMail } = require('../services/mail.service');
@@ -27,8 +26,7 @@ const registerUser = async ({ firstName, lastName, username, email, password, av
 
 		let avatarUrl = null;
 		if (avatar) {
-			const uploadResult = await uploadImage(avatar, 'avatars');
-			avatarUrl = uploadResult.secure_url;
+			avatarUrl = avatar;
 		}
 
 		const user = await User.create({
@@ -193,7 +191,7 @@ const updateProfile = async (userId, args) => {
 
 		let token = null;
 		if (updatedSensitive) {
-			token = generateToken(user);
+			token = generateAccessToken(user);
 		}
 
 		return formatResponse(200, 'Profile updated successfully.', { user, token });
