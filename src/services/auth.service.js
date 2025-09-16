@@ -183,8 +183,8 @@ const updateProfile = async (userId, args) => {
 			updatedSensitive = true;
 		}
 
-		if (args.avatar) {
-			user.avatar = args.avatar;
+		if ('avatar' in args) {
+			user.avatar = args.avatar ?? null;
 		}
 
 		await user.save();
