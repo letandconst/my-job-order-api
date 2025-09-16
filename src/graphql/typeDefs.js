@@ -6,6 +6,7 @@ const serviceTypeDefs = require('./typeDefs/serviceType');
 const partTypeDefs = require('./typeDefs/part');
 const jobOrderTypeDefs = require('./typeDefs/jobOrder');
 const reportTypeDefs = require('./typeDefs/report');
+const clientTypeDefs = require('./typeDefs/client');
 const baseTypeDefs = gql`
 	scalar JSON
 
@@ -23,4 +24,4 @@ const baseTypeDefs = gql`
 	type Mutation
 `;
 
-module.exports = [baseTypeDefs, userTypeDefs, mechanicTypeDefs, serviceTypeDefs, partTypeDefs, jobOrderTypeDefs, reportTypeDefs];
+module.exports = [baseTypeDefs, userTypeDefs, mechanicTypeDefs, serviceTypeDefs, partTypeDefs, jobOrderTypeDefs, reportTypeDefs, clientTypeDefs];

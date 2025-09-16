@@ -2,6 +2,7 @@ const JobOrder = require('../models/JobOrder');
 const Part = require('../models/Parts');
 const Service = require('../models/ServiceType');
 const Mechanic = require('../models/Mechanic');
+const Client = require('../models/Client');
 const { formatResponse } = require('../utils/response');
 
 const { createJobOrderValidator, updateJobOrderValidator, updateJobOrderStatusValidator } = require('../validators/jobOrderValidator');
@@ -10,7 +11,14 @@ const createJobOrder = async (input) => {
 	try {
 		await createJobOrderValidator.validate(input, { abortEarly: false });
 
-		const { customerName, address, carModel, plateNumber, mobileNumber, assignedMechanicId, parts, workRequested } = input;
+		const { clientId, carId, assignedMechanicId, parts, workRequested } = input;
+
+		// Validate client and car
+		const client = await Client.findById(clientId);
+		if (!client) return formatResponse(404, 'Client not found');
+
+		const car = client.cars.id(carId);
+		if (!car) return formatResponse(404, 'Car not found for this client');
 
 		// Validate mechanic
 		const mechanic = await Mechanic.findById(assignedMechanicId);
@@ -51,11 +59,8 @@ const createJobOrder = async (input) => {
 		const total = totalLabor + totalPartsPrice;
 
 		const jobOrder = await JobOrder.create({
-			customerName,
-			address,
-			carModel,
-			plateNumber,
-			mobileNumber,
+			client: client._id,
+			car: car._id,
 			assignedMechanic: mechanic._id,
 			parts: partsData,
 			workRequested: workData,
@@ -75,18 +80,22 @@ const createJobOrder = async (input) => {
 const updateJobOrder = async (input) => {
 	try {
 		await updateJobOrderValidator.validate(input, { abortEarly: false });
-		const { jobOrderId, customerName, address, carModel, plateNumber, mobileNumber, assignedMechanicId, parts, workRequested } = input;
+		const { jobOrderId, clientId, carId, assignedMechanicId, parts, workRequested } = input;
 
 		const jobOrder = await JobOrder.findById(jobOrderId).populate('parts.part').populate('workRequested.service');
 
 		if (!jobOrder) return formatResponse(404, 'Job order not found');
 
-		// Update customer details if provided
-		if (customerName) jobOrder.customerName = customerName;
-		if (address) jobOrder.address = address;
-		if (carModel) jobOrder.carModel = carModel;
-		if (plateNumber) jobOrder.plateNumber = plateNumber;
-		if (mobileNumber) jobOrder.mobileNumber = mobileNumber;
+		if (clientId) {
+			const client = await Client.findById(clientId);
+			if (!client) return formatResponse(404, 'Client not found');
+			jobOrder.client = client._id;
+			if (carId) {
+				const car = client.cars.id(carId);
+				if (!car) return formatResponse(404, 'Car not found for this client');
+				jobOrder.car = car._id;
+			}
+		}
 
 		// Update mechanic if provided
 		if (assignedMechanicId) {
@@ -235,7 +244,7 @@ const updateJobOrderStatus = async (input) => {
 
 const getJobOrders = async () => {
 	try {
-		const jobOrders = await JobOrder.find().populate('assignedMechanic').populate('parts.part').populate('workRequested.service');
+		const jobOrders = await JobOrder.find().populate('client').populate('car').populate('assignedMechanic').populate('parts.part').populate('workRequested.service');
 		return formatResponse(200, 'Job orders fetched successfully', jobOrders);
 	} catch (err) {
 		return formatResponse(400, err.message || 'Failed to fetch job orders');
@@ -244,7 +253,7 @@ const getJobOrders = async () => {
 
 const getJobOrderById = async (id) => {
 	try {
-		const jobOrder = await JobOrder.findById(id).populate('assignedMechanic').populate('parts.part').populate('workRequested.service');
+		const jobOrder = await JobOrder.findById(id).populate('client').populate('car').populate('assignedMechanic').populate('parts.part').populate('workRequested.service');
 		if (!jobOrder) return formatResponse(404, 'Job order not found');
 		return formatResponse(200, 'Job order fetched successfully', jobOrder);
 	} catch (err) {

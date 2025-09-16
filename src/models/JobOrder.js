@@ -2,12 +2,11 @@ const mongoose = require('mongoose');
 
 const jobOrderSchema = new mongoose.Schema(
 	{
-		customerName: { type: String, required: true },
-		address: String,
-		carModel: { type: String, required: true },
-		plateNumber: { type: String, required: true },
-		mobileNumber: { type: String, required: true },
-
+		client: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', required: true },
+		car: {
+			type: mongoose.Schema.Types.ObjectId,
+			required: true,
+		},
 		assignedMechanic: { type: mongoose.Schema.Types.ObjectId, ref: 'Mechanic', required: true },
 
 		parts: [

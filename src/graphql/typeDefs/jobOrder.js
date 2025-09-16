@@ -3,12 +3,9 @@ const { gql } = require('graphql-tag');
 const jobOrderTypeDefs = gql`
 	type JobOrder {
 		id: ID!
-		customerName: String!
-		address: String
-		carModel: String!
-		plateNumber: String!
-		mobileNumber: String!
-		assignedMechanic: Mechanic! # reference to Mechanic
+		client: Client!
+		car: Car!
+		assignedMechanic: Mechanic!
 		parts: [JobOrderPart!]!
 		workRequested: [JobOrderService!]!
 		totalLabor: Float!
@@ -47,11 +44,8 @@ const jobOrderTypeDefs = gql`
 	}
 
 	input CreateJobOrderInput {
-		customerName: String!
-		address: String
-		carModel: String!
-		plateNumber: String!
-		mobileNumber: String!
+		clientId: ID!
+		carId: ID!
 		assignedMechanicId: ID!
 		parts: [JobOrderPartInput]
 		workRequested: [JobOrderServiceInput!]
@@ -59,11 +53,8 @@ const jobOrderTypeDefs = gql`
 
 	input UpdateJobOrderInput {
 		jobOrderId: ID!
-		customerName: String
-		address: String
-		carModel: String
-		plateNumber: String
-		mobileNumber: String
+		clientId: ID
+		carId: ID
 		assignedMechanicId: ID
 		parts: [JobOrderPartInput!]
 		workRequested: [JobOrderServiceInput!]
