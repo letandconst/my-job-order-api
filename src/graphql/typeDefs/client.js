@@ -10,6 +10,8 @@ const clientTypeDefs = gql`
 		cars: [Car!]!
 		createdAt: String!
 		updatedAt: String!
+		lastService: String
+		jobHistory: [JobOrder!]!
 	}
 
 	type Car {
@@ -39,6 +41,7 @@ const clientTypeDefs = gql`
 		clientId: ID!
 		name: String
 		address: String
+		birthday: String
 		mobileNumber: String
 		cars: [CarInput!]
 	}

@@ -1,6 +1,7 @@
 const Client = require('../models/Client');
 const clientValidator = require('../validators/clientValidator');
 const { formatResponse } = require('../utils/response');
+const JobOrder = require('../models/JobOrder');
 
 // Create a new client
 const createClient = async (input) => {
@@ -28,8 +29,21 @@ const updateClient = async (input) => {
 // Get all clients
 const getClients = async () => {
 	try {
-		const clients = await Client.find();
-		return formatResponse(200, 'Clients fetched successfully', clients);
+		const clients = await Client.find().lean();
+
+		const clientFullView = await Promise.all(
+			clients.map(async (client) => {
+				const jobOrders = await JobOrder.find({ client: client._id }).populate('car').populate('assignedMechanic', 'name').populate('workRequested.service', 'name').sort({ createdAt: -1 });
+
+				return {
+					...client,
+					lastService: jobOrders[0]?.createdAt || null,
+					jobHistory: jobOrders,
+				};
+			})
+		);
+
+		return formatResponse(200, 'Clients fetched successfully', clientFullView);
 	} catch (err) {
 		return formatResponse(400, err.message || 'Failed to fetch clients');
 	}
