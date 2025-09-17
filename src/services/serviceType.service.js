@@ -6,7 +6,10 @@ const createServiceType = async (args) => {
 	try {
 		await serviceTypeSchema.validate(args);
 
-		const existing = await ServiceType.findOne({ name: args.name, category: args.category });
+		const existing = await ServiceType.findOne({
+			name: args.name,
+			category: args.category,
+		});
 		if (existing) {
 			return formatResponse(409, 'A service type with this name and category already exists.');
 		}
@@ -16,10 +19,12 @@ const createServiceType = async (args) => {
 			description: args.description,
 			category: args.category,
 			isActive: args.isActive ?? true,
-			amount: args.amount,
+			amount: args.amount, // now object
 		});
 
-		return formatResponse(201, 'Service type created successfully', { serviceType });
+		return formatResponse(201, 'Service type created successfully', {
+			serviceType,
+		});
 	} catch (err) {
 		return formatResponse(400, err.message || 'Failed to create service type');
 	}
@@ -34,16 +39,6 @@ const getServiceTypes = async () => {
 	}
 };
 
-const getServiceTypeById = async (id) => {
-	try {
-		const serviceType = await ServiceType.findById(id);
-		if (!serviceType) return formatResponse(404, 'Service type not found');
-		return formatResponse(200, 'Service type retrieved successfully', { serviceType });
-	} catch (err) {
-		return formatResponse(500, err.message || 'Failed to retrieve service type');
-	}
-};
-
 const updateServiceType = async (id, args) => {
 	try {
 		await updateServiceTypeSchema.validate(args);
@@ -51,31 +46,31 @@ const updateServiceType = async (id, args) => {
 		const serviceType = await ServiceType.findById(id);
 		if (!serviceType) return formatResponse(404, 'Service type not found');
 
-		Object.keys(args).forEach((field) => {
-			if (args[field] !== undefined) serviceType[field] = args[field];
-		});
+		if (args.description !== undefined) {
+			serviceType.description = args.description;
+		}
+
+		if (args.isActive !== undefined) {
+			serviceType.isActive = args.isActive;
+		}
+
+		if (args.amount !== undefined) {
+			serviceType.amount = {
+				...(serviceType.amount.toObject?.() ?? serviceType.amount),
+				...args.amount,
+			};
+		}
 
 		await serviceType.save();
+
 		return formatResponse(200, 'Service type updated successfully', { serviceType });
 	} catch (err) {
 		return formatResponse(400, err.message || 'Failed to update service type');
 	}
 };
 
-const deleteServiceType = async (id) => {
-	try {
-		const serviceType = await ServiceType.findByIdAndDelete(id);
-		if (!serviceType) return formatResponse(404, 'Service type not found');
-		return formatResponse(200, 'Service type deleted successfully', { serviceType });
-	} catch (err) {
-		return formatResponse(500, err.message || 'Failed to delete service type');
-	}
-};
-
 module.exports = {
 	createServiceType,
 	getServiceTypes,
-	getServiceTypeById,
 	updateServiceType,
-	deleteServiceType,
 };

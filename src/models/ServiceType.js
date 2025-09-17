@@ -2,31 +2,18 @@ const mongoose = require('mongoose');
 
 const serviceTypeSchema = new mongoose.Schema(
 	{
-		name: {
-			type: String,
-			required: true,
-			trim: true,
-		},
-		description: {
-			type: String,
-			trim: true,
-		},
-		category: {
-			type: String,
-			required: true,
-			trim: true,
-		},
-		isActive: {
-			type: Boolean,
-			default: true,
-		},
+		name: { type: String, required: true },
+		description: { type: String },
+		category: { type: String, required: true },
+		isActive: { type: Boolean, default: true },
 		amount: {
-			type: Number,
-			required: true,
-			min: 0,
+			sedan: { type: Number, default: 0 },
+			hatchback: { type: Number, default: 0 },
+			crossover: { type: Number, default: 0 },
+			suv: { type: Number, default: 0 },
+			pickup: { type: Number, default: 0 },
 		},
 	},
 	{ timestamps: true }
 );
-
 module.exports = mongoose.model('ServiceType', serviceTypeSchema);
