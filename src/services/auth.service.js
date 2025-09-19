@@ -5,6 +5,8 @@ const { registerSchema, loginSchema, updateProfileSchema } = require('../validat
 const { formatResponse } = require('../utils/response');
 const { sendTemplateMail } = require('../services/mail.service');
 const { generateAccessToken, generateRefreshToken } = require('../utils/token');
+const { GraphQLError } = require('graphql');
+const { ApolloServerErrorCode } = require('@apollo/server/errors');
 
 // Reset password token (separate purpose)
 const generateResetToken = (user) => {
@@ -207,8 +209,14 @@ const updateProfile = async (userId, args) => {
 const verifyToken = (token) => {
 	try {
 		return jwt.verify(token, process.env.JWT_SECRET);
-	} catch {
-		throw new AuthenticationError('Session expired or invalid token');
+	} catch (err) {
+		console.error('Token verification failed:', err);
+
+		throw new GraphQLError('Session expired or invalid token.', {
+			extensions: {
+				code: ApolloServerErrorCode.AUTHENTICATION_FAILED,
+			},
+		});
 	}
 };
 

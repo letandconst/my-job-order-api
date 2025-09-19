@@ -1,14 +1,19 @@
 const { registerUser, loginUser, forgotPassword, resetPassword, updateProfile } = require('../../services/auth.service');
 const User = require('../../models/User');
 const { formatResponse } = require('../../utils/response');
-const { AuthenticationError } = require('@apollo/server');
+const { ApolloServerErrorCode } = require('@apollo/server/errors');
+const { GraphQLError } = require('graphql');
 
 const userResolvers = {
 	Query: {
 		me: async (_, __, { user }) => {
 			try {
 				if (!user) {
-					throw new AuthenticationError('Session expired.');
+					throw new GraphQLError('Session expired.', {
+						extensions: {
+							code: ApolloServerErrorCode.AUTHENTICATION_FAILED,
+						},
+					});
 				}
 
 				const fullUser = await User.findById(user.id);
