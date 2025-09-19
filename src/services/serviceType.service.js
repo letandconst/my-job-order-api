@@ -22,7 +22,7 @@ const createServiceType = async (args) => {
 			amount: args.amount, // now object
 		});
 
-		return formatResponse(201, 'Service type created successfully', {
+		return formatResponse(200, 'Service type created successfully', {
 			serviceType,
 		});
 	} catch (err) {
@@ -39,29 +39,14 @@ const getServiceTypes = async () => {
 	}
 };
 
-const updateServiceType = async (id, args) => {
+const updateServiceType = async (input) => {
 	try {
-		await updateServiceTypeSchema.validate(args);
+		const { serviceTypeId, ...updateData } = input;
 
-		const serviceType = await ServiceType.findById(id);
+		await updateServiceTypeSchema.validate(input);
+
+		const serviceType = await ServiceType.findByIdAndUpdate(serviceTypeId, updateData, { new: true });
 		if (!serviceType) return formatResponse(404, 'Service type not found');
-
-		if (args.description !== undefined) {
-			serviceType.description = args.description;
-		}
-
-		if (args.isActive !== undefined) {
-			serviceType.isActive = args.isActive;
-		}
-
-		if (args.amount !== undefined) {
-			serviceType.amount = {
-				...(serviceType.amount.toObject?.() ?? serviceType.amount),
-				...args.amount,
-			};
-		}
-
-		await serviceType.save();
 
 		return formatResponse(200, 'Service type updated successfully', { serviceType });
 	} catch (err) {

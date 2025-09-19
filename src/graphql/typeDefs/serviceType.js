@@ -37,8 +37,10 @@ const serviceTypeDefs = gql`
 	}
 
 	input UpdateServiceTypeInput {
+		serviceTypeId: String
 		description: String
 		isActive: Boolean
+		category: String
 		amount: AmountPerCarTypeInput
 	}
 
@@ -49,7 +51,7 @@ const serviceTypeDefs = gql`
 
 	extend type Mutation {
 		createServiceType(input: CreateServiceTypeInput!): BaseResponse!
-		updateServiceType(id: ID!, input: UpdateServiceTypeInput!): BaseResponse!
+		updateServiceType(input: UpdateServiceTypeInput!): BaseResponse!
 	}
 `;
 

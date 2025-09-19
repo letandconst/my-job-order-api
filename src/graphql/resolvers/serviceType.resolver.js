@@ -6,7 +6,7 @@ const serviceTypeResolvers = {
 	},
 	Mutation: {
 		createServiceType: async (_, { input }) => await createServiceType(input),
-		updateServiceType: async (_, { id, ...args }) => await updateServiceType(id, args),
+		updateServiceType: async (_, { input }) => await updateServiceType(input),
 	},
 };
 
