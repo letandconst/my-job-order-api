@@ -5,7 +5,6 @@ const { registerSchema, loginSchema, updateProfileSchema } = require('../validat
 const { formatResponse } = require('../utils/response');
 const { sendTemplateMail } = require('../services/mail.service');
 const { generateAccessToken, generateRefreshToken } = require('../utils/token');
-const { AuthenticationError } = require('@apollo/server');
 
 // Reset password token (separate purpose)
 const generateResetToken = (user) => {

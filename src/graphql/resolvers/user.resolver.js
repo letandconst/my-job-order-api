@@ -1,6 +1,7 @@
 const { registerUser, loginUser, forgotPassword, resetPassword, updateProfile } = require('../../services/auth.service');
 const User = require('../../models/User');
 const { formatResponse } = require('../../utils/response');
+const { AuthenticationError } = require('@apollo/server');
 
 const userResolvers = {
 	Query: {
