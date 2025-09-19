@@ -1,4 +1,4 @@
-const { createPart, updatePart, deletePart, getParts, getPartById, addStock, consumeStock, getLowStockParts } = require('../../services/part.service');
+const { createPart, updatePart, deletePart, getParts, getPartById, addStock, consumeStock, getLowStockParts, addStockBatch, consumeStockBatch } = require('../../services/part.service');
 
 const partResolvers = {
 	Query: {
@@ -12,6 +12,8 @@ const partResolvers = {
 		deletePart: async (_, { id }) => deletePart(id),
 		addStock: async (_, { id, quantity }) => addStock(id, quantity),
 		consumeStock: async (_, { id, quantity, jobOrderId }) => consumeStock(id, quantity, jobOrderId),
+		addStockBatch: async (_, { updates }) => addStockBatch(updates),
+		consumeStockBatch: async (_, { updates, jobOrderId }) => consumeStockBatch(updates, jobOrderId),
 	},
 };
 

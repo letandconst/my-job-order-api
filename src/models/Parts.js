@@ -14,10 +14,12 @@ const partSchema = new mongoose.Schema(
 		category: {
 			type: String,
 			required: true,
+			trim: true,
 		},
 		brand: {
 			type: String,
 			required: true,
+			trim: true,
 		},
 		condition: {
 			type: String,
@@ -32,9 +34,11 @@ const partSchema = new mongoose.Schema(
 			type: Number,
 			required: true,
 			min: 0,
+			default: 0,
 		},
 		reorderLevel: {
 			type: Number,
+			min: 0,
 			default: 0,
 		},
 		price: {
@@ -45,9 +49,11 @@ const partSchema = new mongoose.Schema(
 		isActive: {
 			type: Boolean,
 			default: true,
+			index: true,
 		},
 		supplier: {
 			type: String,
+			trim: true,
 		},
 		images: [
 			{
@@ -58,5 +64,8 @@ const partSchema = new mongoose.Schema(
 	},
 	{ timestamps: true }
 );
+
+partSchema.index({ stock: 1 });
+partSchema.index({ category: 1, brand: 1 });
 
 module.exports = mongoose.model('Part', partSchema);

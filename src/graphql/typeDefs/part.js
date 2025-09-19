@@ -15,11 +15,11 @@ const partTypeDefs = gql`
 		condition: String!
 		unit: String!
 		stock: Int!
-		reorderLevel: Int
+		reorderLevel: Int!
 		price: Float!
 		isActive: Boolean!
 		supplier: String
-		images: [PartImage!]
+		images: [PartImage]
 		createdAt: String!
 		updatedAt: String!
 	}
@@ -36,12 +36,12 @@ const partTypeDefs = gql`
 		brand: String!
 		condition: String
 		unit: String
-		stock: Int!
+		stock: Int
 		reorderLevel: Int
 		price: Float!
 		isActive: Boolean
 		supplier: String
-		images: [PartImageInput!]
+		images: [PartImageInput]
 	}
 
 	input UpdatePartInput {
@@ -56,7 +56,12 @@ const partTypeDefs = gql`
 		price: Float
 		isActive: Boolean
 		supplier: String
-		images: [PartImageInput!]
+		images: [PartImageInput]
+	}
+
+	input StockUpdateInput {
+		id: ID!
+		quantity: Int!
 	}
 
 	extend type Query {
@@ -71,6 +76,10 @@ const partTypeDefs = gql`
 		deletePart(id: ID!): BaseResponse!
 		addStock(id: ID!, quantity: Int!): BaseResponse!
 		consumeStock(id: ID!, quantity: Int!, jobOrderId: ID): BaseResponse!
+
+		# Batch operations
+		addStockBatch(updates: [StockUpdateInput!]!): BaseResponse!
+		consumeStockBatch(updates: [StockUpdateInput!]!, jobOrderId: ID): BaseResponse!
 	}
 `;
 

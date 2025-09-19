@@ -40,19 +40,9 @@ const server = new ApolloServer({
 		expressMiddleware(server, {
 			context: async ({ req, res }) => {
 				let user = null;
-
 				// First check for accessToken cookie
 				if (req.cookies?.accessToken) {
 					user = verifyToken(req.cookies.accessToken, process.env.JWT_SECRET);
-				}
-
-				// Fallback: check Authorization header (Bearer token)
-				if (!user) {
-					const authHeader = req.headers.authorization || '';
-					if (authHeader.startsWith('Bearer ')) {
-						const token = authHeader.split(' ')[1];
-						user = verifyToken(token, process.env.JWT_SECRET);
-					}
 				}
 
 				return { req, res, user };
