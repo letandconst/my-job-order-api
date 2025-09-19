@@ -7,7 +7,7 @@ const userResolvers = {
 		me: async (_, __, { user }) => {
 			try {
 				if (!user) {
-					return formatResponse(401, 'Not authenticated.');
+					throw new AuthenticationError('Session expired.');
 				}
 
 				const fullUser = await User.findById(user.id);
@@ -36,10 +36,14 @@ const userResolvers = {
 			try {
 				const token = req.cookies.refreshToken;
 				if (!token) {
-					return formatResponse(401, 'No refresh token found. Please log in again.');
+					throw new AuthenticationError('No refresh token found. Please log in again.');
 				}
 
 				const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+
+				if (!decoded || !decoded.id || !decoded.email) {
+					throw new AuthenticationError('Invalid token payload.');
+				}
 
 				const newAccessToken = generateAccessToken({
 					_id: decoded.id,
@@ -53,9 +57,9 @@ const userResolvers = {
 					maxAge: 15 * 60 * 1000, // 15 min
 				});
 
-				return formatResponse(200, 'Access token refreshed');
+				return formatResponse(200, 'Access token refreshed.');
 			} catch (err) {
-				return formatResponse(403, 'Invalid or expired refresh token. Please log in again.');
+				throw new AuthenticationError('Invalid or expired refresh token. Please log in again.');
 			}
 		},
 		logout: async (_, __, { res }) => {

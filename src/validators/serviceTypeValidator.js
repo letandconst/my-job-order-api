@@ -19,7 +19,7 @@ const serviceTypeSchema = yup.object().shape({
 
 const updateServiceTypeSchema = yup.object().shape({
 	description: yup.string().nullable(),
-	category: yup.string().nullable(),
+	category: yup.string().required('Category is required'),
 	isActive: yup.boolean(),
 	amount: yup
 		.object({
