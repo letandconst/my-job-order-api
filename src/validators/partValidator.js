@@ -2,12 +2,20 @@ const yup = require('yup');
 
 const partValidator = yup.object({
 	name: yup.string().required('Part name is required'),
-	description: yup.string().optional(),
+	description: yup
+		.string()
+		.transform((value) => (value === '' ? null : value))
+		.nullable()
+		.optional(),
 	category: yup.string().required('Category is required'),
 	brand: yup.string().required('Brand is required'),
 	condition: yup.string().oneOf(['new', 'used']).default('new'),
 	unit: yup.string().default('pcs'),
-	stock: yup.number().required().min(0),
+	stock: yup.number().when('$mode', {
+		is: 'create',
+		then: (schema) => schema.required('Stock is required').min(0),
+		otherwise: (schema) => schema.min(0),
+	}),
 	reorderLevel: yup.number().min(0).default(0),
 	price: yup.number().required().min(0),
 	isActive: yup.boolean().default(true),

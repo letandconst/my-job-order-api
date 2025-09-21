@@ -12,7 +12,8 @@ const getPartOr404 = async (id) => {
 // Create a new part
 const createPart = async (input) => {
 	try {
-		await partValidator.validate(input, { abortEarly: false });
+		await partValidator.validate(input, { abortEarly: false, context: { mode: 'create' } });
+
 		const part = await Part.create(input);
 		return formatResponse(201, 'Part created successfully', part);
 	} catch (err) {
@@ -23,7 +24,8 @@ const createPart = async (input) => {
 // Update an existing part
 const updatePart = async (id, input) => {
 	try {
-		await partValidator.validate(input, { abortEarly: false });
+		await partValidator.validate(input, { abortEarly: false, context: { mode: 'update' } });
+
 		const part = await Part.findByIdAndUpdate(id, input, { new: true });
 		if (!part) return formatResponse(404, 'Part not found');
 		return formatResponse(200, 'Part updated successfully', part);

@@ -32,7 +32,9 @@ const partSchema = new mongoose.Schema(
 		},
 		stock: {
 			type: Number,
-			required: true,
+			required: function () {
+				return this.isNew;
+			},
 			min: 0,
 			default: 0,
 		},
