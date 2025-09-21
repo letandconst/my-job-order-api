@@ -1,6 +1,8 @@
 const { gql } = require('graphql-tag');
 
 const partTypeDefs = gql`
+	scalar DateTime
+
 	type PartImage {
 		url: String!
 		alt: String
@@ -22,6 +24,7 @@ const partTypeDefs = gql`
 		images: [PartImage]
 		createdAt: String!
 		updatedAt: String!
+		lastTransactionAt: DateTime
 	}
 
 	input PartImageInput {
