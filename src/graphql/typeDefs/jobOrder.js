@@ -15,6 +15,7 @@ const jobOrderTypeDefs = gql`
 		history: [JobOrderHistory!]!
 		createdAt: String!
 		updatedAt: String!
+		notes: [JobOrderNote!]
 	}
 
 	type JobOrderPart {
@@ -26,6 +27,12 @@ const jobOrderTypeDefs = gql`
 	type JobOrderService {
 		service: ServiceType!
 		price: Float! # snapshot at order time
+	}
+
+	type JobOrderNote {
+		message: String!
+		addedBy: String!
+		createdAt: String!
 	}
 
 	type JobOrderHistory {
