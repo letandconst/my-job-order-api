@@ -1,11 +1,12 @@
 const StockTransaction = require('../models/StockTransaction');
 const Part = require('../models/Parts');
+const { createStockTransactionValidator } = require('../validators/stockValidator');
 const formatResponse = require('../utils/response');
 
 // Create stock transaction
 const createStockTransaction = async (input, userId) => {
 	try {
-		const { partId, jobOrderId, type, quantity, reference } = input;
+		await createStockTransactionValidator.validate({ ...input, createdBy: userId }, { abortEarly: false });
 
 		// 1. Find part
 		const part = await Part.findById(partId);

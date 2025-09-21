@@ -63,6 +63,7 @@ const partSchema = new mongoose.Schema(
 				alt: String,
 			},
 		],
+		lastTransactionAt: { type: Date },
 	},
 	{ timestamps: true }
 );

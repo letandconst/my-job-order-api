@@ -16,24 +16,27 @@ const jobOrderSchema = new mongoose.Schema(
 				price: { type: Number, required: true },
 			},
 		],
-
 		workRequested: [
 			{
 				service: { type: mongoose.Schema.Types.ObjectId, ref: 'ServiceType' },
 				price: { type: Number, required: true },
 			},
 		],
-
 		totalLabor: { type: Number, required: true },
 		totalPartsPrice: { type: Number, required: true },
 		total: { type: Number, required: true },
-
 		status: {
 			type: String,
 			enum: ['pending', 'in_progress', 'completed'],
 			default: 'pending',
 		},
-
+		notes: [
+			{
+				message: { type: String, required: true },
+				addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+				createdAt: { type: Date, default: Date.now },
+			},
+		],
 		history: [
 			{
 				status: String,

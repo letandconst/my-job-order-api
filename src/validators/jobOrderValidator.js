@@ -10,6 +10,13 @@ const jobOrderServiceSchema = yup.object({
 	serviceId: yup.string().required('Service ID is required'),
 });
 
+// ---------------- NOTE SCHEMA ----------------
+const jobOrderNoteSchema = yup.object({
+	message: yup.string().required('Note message is required'),
+	addedBy: yup.string().required('AddedBy is required'),
+	createdAt: yup.date().default(() => new Date()), // auto default
+});
+
 // ---------------- CREATE JOB ORDER ----------------
 const createJobOrderValidator = yup.object({
 	clientId: yup.string().required('Client ID is required'),
@@ -17,6 +24,7 @@ const createJobOrderValidator = yup.object({
 	assignedMechanicId: yup.string().required('Assigned mechanic is required'),
 	parts: yup.array().of(jobOrderPartSchema).optional(),
 	workRequested: yup.array().of(jobOrderServiceSchema).optional(),
+	notes: yup.array().of(jobOrderNoteSchema).optional(),
 });
 
 // ---------------- UPDATE JOB ORDER ----------------
@@ -27,6 +35,7 @@ const updateJobOrderValidator = yup.object({
 	assignedMechanicId: yup.string().optional(),
 	parts: yup.array().of(jobOrderPartSchema).optional(),
 	workRequested: yup.array().of(jobOrderServiceSchema).optional(),
+	notes: yup.array().of(jobOrderNoteSchema).optional(),
 });
 
 // ---------------- UPDATE STATUS ----------------
