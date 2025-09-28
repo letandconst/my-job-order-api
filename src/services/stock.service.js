@@ -1,33 +1,33 @@
-const StockTransaction = require('../models/StockTransaction');
-const Part = require('../models/Parts');
 const { createStockTransactionValidator } = require('../validators/stockValidator');
-const formatResponse = require('../utils/response');
+const { Part } = require('../models/Parts');
+const StockTransaction = require('../models/StockTransaction');
 
-// Create stock transaction
 const createStockTransaction = async (input, userId) => {
 	try {
 		await createStockTransactionValidator.validate({ ...input, createdBy: userId }, { abortEarly: false });
 
-		// 1. Find part
-		const part = await Part.findById(partId);
-		if (!part) return formatResponse(404, 'Part not found');
+		const { partId, jobOrderId, type, quantity, reference } = input;
 
+		//  Find part
+		const part = await Part.findById(partId);
+		if (!part) throw new Error('Part not found');
+
+		//  Calculate new balance
 		let newBalance = part.stock;
 
-		// 2. Apply transaction logic
 		if (type === 'IN') {
 			newBalance += quantity;
 		} else if (type === 'OUT') {
-			if (part.stock < quantity) return formatResponse(400, 'Insufficient stock');
+			if (part.stock < quantity) throw new Error('Insufficient stock');
 			newBalance -= quantity;
 		} else if (type === 'ADJUSTMENT') {
-			newBalance = quantity; // absolute reset
+			newBalance = quantity;
 		}
 
-		// 3. Create transaction log
+		//  Create transaction log
 		const transaction = await StockTransaction.create({
 			part: partId,
-			jobOrder: jobOrderId || null,
+			jobOrder: jobOrderId,
 			type,
 			quantity,
 			balanceAfter: newBalance,
@@ -35,41 +35,25 @@ const createStockTransaction = async (input, userId) => {
 			createdBy: userId,
 		});
 
-		// 4. Update part stock + last transaction time
+		//  Update part stock + last transaction
 		part.stock = newBalance;
 		part.lastTransactionAt = new Date();
 		await part.save();
 
-		return formatResponse(201, 'Stock transaction created successfully', transaction);
+		return transaction;
 	} catch (err) {
-		return formatResponse(400, err.message || 'Failed to create stock transaction');
+		throw err;
 	}
 };
 
 // Get all transactions
 const getAllStockTransactions = async () => {
-	try {
-		const transactions = await StockTransaction.find().populate('part').populate('jobOrder').populate('createdBy').sort({ createdAt: -1 });
+	const transactions = await StockTransaction.find().populate('part').populate('jobOrder').populate('createdBy').sort({ createdAt: -1 });
 
-		return formatResponse(200, 'Stock transactions fetched successfully', transactions);
-	} catch (err) {
-		return formatResponse(400, err.message || 'Failed to fetch stock transactions');
-	}
-};
-
-// Get transactions by part
-const getStockTransactionsByPart = async (partId) => {
-	try {
-		const transactions = await StockTransaction.find({ part: partId }).populate('part').populate('jobOrder').populate('createdBy').sort({ createdAt: -1 });
-
-		return formatResponse(200, 'Stock transactions fetched successfully', transactions);
-	} catch (err) {
-		return formatResponse(400, err.message || 'Failed to fetch stock transactions');
-	}
+	return transactions;
 };
 
 module.exports = {
 	createStockTransaction,
 	getAllStockTransactions,
-	getStockTransactionsByPart,
 };
