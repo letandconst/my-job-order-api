@@ -2,13 +2,14 @@ const { getJobOrderById, getJobOrders, createJobOrder, updateJobOrder, updateJob
 
 const jobOrderResolver = {
 	Query: {
-		jobOrders: async () => getJobOrders(),
-		jobOrder: async (_, { id }) => getJobOrderById(id),
+		jobOrders: () => getJobOrders(),
+		jobOrder: (_, { id }) => getJobOrderById(_, { id }),
 	},
+
 	Mutation: {
-		createJobOrder: async (_, { input }) => createJobOrder(input),
-		updateJobOrder: async (_, { input }) => updateJobOrder(input),
-		updateJobOrderStatus: async (_, { input }) => updateJobOrderStatus(input),
+		createJobOrder: (_, { input }) => createJobOrder(_, { input }),
+		updateJobOrder: (_, { input }) => updateJobOrder(_, { input }),
+		updateJobOrderStatus: (_, { input }) => updateJobOrderStatus(_, { input }),
 	},
 };
 

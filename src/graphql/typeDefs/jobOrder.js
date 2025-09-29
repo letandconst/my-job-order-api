@@ -5,28 +5,28 @@ const jobOrderTypeDefs = gql`
 		id: ID!
 		client: Client!
 		car: Car!
-		assignedMechanic: Mechanic!
-		parts: [JobOrderPart!]!
-		workRequested: [JobOrderService!]!
-		totalLabor: Float!
-		totalPartsPrice: Float!
-		total: Float!
+		assignedMechanic: Mechanic
+		parts: [JobOrderPart]
+		workRequested: [JobOrderService]
+		totalLabor: Float
+		totalPartsPrice: Float
+		total: Float
 		status: String!
-		history: [JobOrderHistory!]!
+		history: [JobOrderHistory]
 		createdAt: String!
 		updatedAt: String!
-		notes: [JobOrderNote!]
+		notes: [JobOrderNote]
 	}
 
 	type JobOrderPart {
-		part: Part!
+		part: Part
 		quantity: Int!
-		price: Float! # snapshot at order time
+		price: Float!
 	}
 
 	type JobOrderService {
-		service: ServiceType!
-		price: Float! # snapshot at order time
+		service: ServiceType
+		price: Float!
 	}
 
 	type JobOrderNote {
@@ -53,9 +53,9 @@ const jobOrderTypeDefs = gql`
 	input CreateJobOrderInput {
 		clientId: ID!
 		carId: ID!
-		assignedMechanicId: ID!
+		assignedMechanicId: ID
 		parts: [JobOrderPartInput]
-		workRequested: [JobOrderServiceInput!]
+		workRequested: [JobOrderServiceInput]
 	}
 
 	input UpdateJobOrderInput {
@@ -63,8 +63,8 @@ const jobOrderTypeDefs = gql`
 		clientId: ID
 		carId: ID
 		assignedMechanicId: ID
-		parts: [JobOrderPartInput!]
-		workRequested: [JobOrderServiceInput!]
+		parts: [JobOrderPartInput]
+		workRequested: [JobOrderServiceInput]
 	}
 
 	input UpdateJobOrderStatusInput {
@@ -74,14 +74,14 @@ const jobOrderTypeDefs = gql`
 	}
 
 	type Query {
-		jobOrders: BaseResponse!
-		jobOrder(id: ID!): BaseResponse!
+		jobOrders: [JobOrder!]!
+		jobOrder(id: ID!): JobOrder
 	}
 
 	type Mutation {
-		createJobOrder(input: CreateJobOrderInput!): BaseResponse!
-		updateJobOrder(input: UpdateJobOrderInput!): BaseResponse!
-		updateJobOrderStatus(input: UpdateJobOrderStatusInput!): BaseResponse!
+		createJobOrder(input: CreateJobOrderInput!): JobOrder!
+		updateJobOrder(input: UpdateJobOrderInput!): JobOrder!
+		updateJobOrderStatus(input: UpdateJobOrderStatusInput!): JobOrder!
 	}
 `;
 

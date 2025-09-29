@@ -3,13 +3,11 @@ const Part = require('../models/Parts');
 const Service = require('../models/ServiceType');
 const Mechanic = require('../models/Mechanic');
 const Client = require('../models/Client');
-const { formatResponse } = require('../utils/response');
-
 const { createJobOrderValidator, updateJobOrderValidator, updateJobOrderStatusValidator } = require('../validators/jobOrderValidator');
-
 const { createStockTransaction } = require('./stock.service');
 
-const createJobOrder = async (input) => {
+// ---------------------- CREATE ----------------------
+const createJobOrder = async (_, { input }) => {
 	try {
 		await createJobOrderValidator.validate(input, { abortEarly: false });
 
@@ -17,22 +15,22 @@ const createJobOrder = async (input) => {
 
 		// Validate client and car
 		const client = await Client.findById(clientId);
-		if (!client) return formatResponse(404, 'Client not found');
+		if (!client) throw new Error('Client not found');
 
 		const car = client.cars.id(carId);
-		if (!car) return formatResponse(404, 'Car not found for this client');
+		if (!car) throw new Error('Car not found for this client');
 
 		// Validate mechanic
 		const mechanic = await Mechanic.findById(assignedMechanicId);
-		if (!mechanic) return formatResponse(404, 'Mechanic not found');
+		if (!mechanic) throw new Error('Mechanic not found');
 
-		// Map parts with snapshot price
+		// Parts snapshot
 		let partsData = [];
 		let totalPartsPrice = 0;
 		if (parts?.length) {
 			for (const p of parts) {
 				const partDoc = await Part.findById(p.partId);
-				if (!partDoc) return formatResponse(404, `Part not found: ${p.partId}`);
+				if (!partDoc) throw new Error(`Part not found: ${p.partId}`);
 				const subtotal = partDoc.price * p.quantity;
 				totalPartsPrice += subtotal;
 				partsData.push({
@@ -43,13 +41,13 @@ const createJobOrder = async (input) => {
 			}
 		}
 
-		// Map services with snapshot price
+		// Services snapshot
 		let workData = [];
 		let totalLabor = 0;
 		if (workRequested?.length) {
 			for (const w of workRequested) {
 				const serviceDoc = await Service.findById(w.serviceId);
-				if (!serviceDoc) return formatResponse(404, `Service not found: ${w.serviceId}`);
+				if (!serviceDoc) throw new Error(`Service not found: ${w.serviceId}`);
 				totalLabor += serviceDoc.amount;
 				workData.push({
 					service: serviceDoc._id,
@@ -78,35 +76,35 @@ const createJobOrder = async (input) => {
 			totalPartsPrice,
 			total,
 			status: 'pending',
-			notes: notes || '', // 🔹 add notes
 			history: [{ status: 'pending', updatedBy: 'system' }],
 			notes: initialNotes,
 		});
 
-		return formatResponse(201, 'Job order created successfully', jobOrder);
+		return jobOrder;
 	} catch (err) {
-		return formatResponse(400, err.message || 'Failed to create job order');
+		throw new Error(err.message || 'Failed to create job order');
 	}
 };
 
-const updateJobOrder = async (input) => {
+// ---------------------- UPDATE ----------------------
+const updateJobOrder = async (_, { input }) => {
 	try {
 		await updateJobOrderValidator.validate(input, { abortEarly: false });
-		const { jobOrderId, clientId, carId, assignedMechanicId, parts, workRequested } = input;
+		const { jobOrderId, clientId, carId, assignedMechanicId, parts, workRequested, notes } = input;
 
 		const jobOrder = await JobOrder.findById(jobOrderId).populate('parts.part').populate('workRequested.service');
 
-		if (!jobOrder) return formatResponse(404, 'Job order not found');
+		if (!jobOrder) throw new Error('Job order not found');
 
 		// --- Client & Car ---
 		if (clientId) {
 			const client = await Client.findById(clientId);
-			if (!client) return formatResponse(404, 'Client not found');
+			if (!client) throw new Error('Client not found');
 			jobOrder.client = client._id;
 
 			if (carId) {
 				const car = client.cars.id(carId);
-				if (!car) return formatResponse(404, 'Car not found for this client');
+				if (!car) throw new Error('Car not found for this client');
 				jobOrder.car = car._id;
 			}
 		}
@@ -114,7 +112,7 @@ const updateJobOrder = async (input) => {
 		// --- Mechanic ---
 		if (assignedMechanicId) {
 			const mechanic = await Mechanic.findById(assignedMechanicId);
-			if (!mechanic) return formatResponse(404, 'Mechanic not found');
+			if (!mechanic) throw new Error('Mechanic not found');
 			jobOrder.assignedMechanic = mechanic._id;
 		}
 
@@ -131,9 +129,7 @@ const updateJobOrder = async (input) => {
 			});
 		}
 
-		/**
-		 * --- Parts Update ---
-		 */
+		// --- Parts ---
 		if (parts) {
 			const partsMap = new Map(parts.map((p) => [p.partId, p]));
 
@@ -141,9 +137,9 @@ const updateJobOrder = async (input) => {
 			for (let i = jobOrder.parts.length - 1; i >= 0; i--) {
 				const existingPart = jobOrder.parts[i];
 				if (!partsMap.has(existingPart.part._id.toString())) {
-					// If already in progress → restock
+					// Restock if already in progress
 					if (jobOrder.status === 'in_progress') {
-						const tx = await createStockTransaction(
+						await createStockTransaction(
 							{
 								partId: existingPart.part._id,
 								jobOrderId: jobOrder._id,
@@ -153,7 +149,6 @@ const updateJobOrder = async (input) => {
 							},
 							'System'
 						);
-						if (tx.statusCode !== 201) return tx;
 					}
 					jobOrder.parts.splice(i, 1);
 				}
@@ -162,7 +157,7 @@ const updateJobOrder = async (input) => {
 			// Add or update parts
 			for (const p of parts) {
 				const partDoc = await Part.findById(p.partId);
-				if (!partDoc) return formatResponse(404, `Part not found: ${p.partId}`);
+				if (!partDoc) throw new Error(`Part not found: ${p.partId}`);
 
 				const existingPart = jobOrder.parts.find((item) => item.part._id.equals(p.partId));
 
@@ -170,7 +165,7 @@ const updateJobOrder = async (input) => {
 					const qtyDiff = p.quantity - existingPart.quantity;
 
 					if (jobOrder.status === 'in_progress' && qtyDiff !== 0) {
-						const tx = await createStockTransaction(
+						await createStockTransaction(
 							{
 								partId: partDoc._id,
 								jobOrderId: jobOrder._id,
@@ -180,14 +175,13 @@ const updateJobOrder = async (input) => {
 							},
 							'System'
 						);
-						if (tx.statusCode !== 201) return tx;
 					}
 
 					existingPart.quantity = p.quantity;
 					existingPart.price = partDoc.price;
 				} else {
 					if (jobOrder.status === 'in_progress') {
-						const tx = await createStockTransaction(
+						await createStockTransaction(
 							{
 								partId: partDoc._id,
 								jobOrderId: jobOrder._id,
@@ -197,7 +191,6 @@ const updateJobOrder = async (input) => {
 							},
 							'System'
 						);
-						if (tx.statusCode !== 201) return tx;
 					}
 					jobOrder.parts.push({
 						part: partDoc._id,
@@ -208,9 +201,7 @@ const updateJobOrder = async (input) => {
 			}
 		}
 
-		/**
-		 * --- Services Update ---
-		 */
+		// --- Services ---
 		if (workRequested) {
 			const servicesMap = new Map(workRequested.map((w) => [w.serviceId, w]));
 
@@ -225,7 +216,7 @@ const updateJobOrder = async (input) => {
 			// Add or update services
 			for (const w of workRequested) {
 				const serviceDoc = await Service.findById(w.serviceId);
-				if (!serviceDoc) return formatResponse(404, `Service not found: ${w.serviceId}`);
+				if (!serviceDoc) throw new Error(`Service not found: ${w.serviceId}`);
 
 				const existingService = jobOrder.workRequested.find((item) => item.service._id.equals(w.serviceId));
 
@@ -247,32 +238,31 @@ const updateJobOrder = async (input) => {
 
 		await jobOrder.save();
 
-		return formatResponse(200, 'Job order updated successfully', jobOrder);
+		return jobOrder;
 	} catch (err) {
-		return formatResponse(400, err.message || 'Failed to update job order');
+		throw new Error(err.message || 'Failed to update job order');
 	}
 };
 
-const updateJobOrderStatus = async (input) => {
+// ---------------------- STATUS ----------------------
+const updateJobOrderStatus = async (_, { input }) => {
 	try {
 		await updateJobOrderStatusValidator.validate(input, { abortEarly: false });
 
 		const { jobOrderId, status, updatedBy } = input;
 		const jobOrder = await JobOrder.findById(jobOrderId).populate('parts.part');
-		if (!jobOrder) return formatResponse(404, 'Job order not found');
+		if (!jobOrder) throw new Error('Job order not found');
 
-		// --- Transition: pending → in_progress ---
+		// Transition: pending → in_progress
 		if (status === 'in_progress' && jobOrder.status === 'pending') {
-			// Pre-check all stock levels
 			for (const item of jobOrder.parts) {
 				if (item.part.stock < item.quantity) {
-					return formatResponse(400, `Insufficient stock for part: ${item.part.name}`);
+					throw new Error(`Insufficient stock for part: ${item.part.name}`);
 				}
 			}
 
-			// Deduct stock via StockTransaction
 			for (const item of jobOrder.parts) {
-				const tx = await createStockTransaction(
+				await createStockTransaction(
 					{
 						partId: item.part._id,
 						jobOrderId: jobOrder._id,
@@ -282,16 +272,10 @@ const updateJobOrderStatus = async (input) => {
 					},
 					updatedBy
 				);
-
-				if (tx.statusCode !== 201) return tx; // stop if transaction failed
 			}
 		}
 
-		// --- Transition: in_progress → completed ---
-		// No stock action needed, just finalize status.
-
-		// Update job order
-
+		// Update status
 		const formattedStatus = status
 			.split('_')
 			.map((w) => w.charAt(0).toUpperCase() + w.slice(1))
@@ -307,28 +291,29 @@ const updateJobOrderStatus = async (input) => {
 
 		await jobOrder.save();
 
-		return formatResponse(200, 'Job order status updated', jobOrder);
+		return jobOrder;
 	} catch (err) {
-		return formatResponse(400, err.message || 'Failed to update job order');
+		throw new Error(err.message || 'Failed to update job order');
 	}
 };
 
+// ---------------------- FETCH ----------------------
 const getJobOrders = async () => {
 	try {
-		const jobOrders = await JobOrder.find().populate('client').populate('car').populate('assignedMechanic').populate('parts.part').populate('workRequested.service');
-		return formatResponse(200, 'Job orders fetched successfully', jobOrders);
+		return await JobOrder.find().populate('client').populate('car').populate('assignedMechanic').populate('parts.part').populate('workRequested.service');
 	} catch (err) {
-		return formatResponse(400, err.message || 'Failed to fetch job orders');
+		throw new Error(err.message || 'Failed to fetch job orders');
 	}
 };
 
-const getJobOrderById = async (id) => {
+const getJobOrderById = async (_, { id }) => {
 	try {
 		const jobOrder = await JobOrder.findById(id).populate('client').populate('car').populate('assignedMechanic').populate('parts.part').populate('workRequested.service');
-		if (!jobOrder) return formatResponse(404, 'Job order not found');
-		return formatResponse(200, 'Job order fetched successfully', jobOrder);
+
+		if (!jobOrder) throw new Error('Job order not found');
+		return jobOrder;
 	} catch (err) {
-		return formatResponse(400, err.message || 'Failed to fetch job order');
+		throw new Error(err.message || 'Failed to fetch job order');
 	}
 };
 
