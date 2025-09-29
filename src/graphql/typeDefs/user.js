@@ -11,19 +11,29 @@ const userTypeDefs = gql`
 		createdAt: String
 	}
 
+	type AuthPayload {
+		user: User!
+		token: String
+		message: String
+	}
+
+	type SimpleMessage {
+		message: String!
+	}
+
 	extend type Query {
-		me: BaseResponse!
-		listUsers: BaseResponse!
+		me: User!
+		users: [User!]!
 	}
 
 	extend type Mutation {
-		register(firstName: String!, lastName: String!, username: String!, email: String!, password: String!, avatar: String): BaseResponse
-		login(email: String, username: String, password: String!): BaseResponse
-		refreshToken: BaseResponse
-		logout: BaseResponse
-		forgotPassword(email: String!): BaseResponse
-		resetPassword(token: String!, newPassword: String!): BaseResponse
-		updateProfile(email: String, avatar: String, password: String): BaseResponse
+		register(firstName: String!, lastName: String!, username: String!, email: String!, password: String!, avatar: String): AuthPayload!
+		login(email: String, username: String, password: String!): AuthPayload!
+		refreshToken: SimpleMessage!
+		logout: SimpleMessage!
+		forgotPassword(email: String!): SimpleMessage!
+		resetPassword(token: String!, newPassword: String!): SimpleMessage!
+		updateProfile(email: String, avatar: String, password: String): AuthPayload!
 	}
 `;
 

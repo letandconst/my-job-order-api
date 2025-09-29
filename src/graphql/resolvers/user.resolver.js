@@ -1,54 +1,46 @@
 const { registerUser, loginUser, forgotPassword, resetPassword, updateProfile } = require('../../services/auth.service');
 const User = require('../../models/User');
-const { formatResponse } = require('../../utils/response');
-const { ApolloServerErrorCode } = require('@apollo/server/errors');
 const { GraphQLError } = require('graphql');
+const { ApolloServerErrorCode } = require('@apollo/server/errors');
+const jwt = require('jsonwebtoken');
+const { generateAccessToken } = require('../../utils/token');
 
 const userResolvers = {
 	Query: {
 		me: async (_, __, { user }) => {
-			try {
-				if (!user) {
-					throw new GraphQLError('Session expired.', {
-						extensions: {
-							code: ApolloServerErrorCode.AUTHENTICATION_FAILED,
-						},
-					});
-				}
-
-				const fullUser = await User.findById(user.id);
-				if (!fullUser) {
-					return formatResponse(404, 'User not found.');
-				}
-
-				return formatResponse(200, 'User retrieved successfully.', { user: fullUser });
-			} catch (err) {
-				return formatResponse(500, err.message || 'Failed to fetch user.');
+			if (!user) {
+				throw new GraphQLError('Session expired.', {
+					extensions: { code: ApolloServerErrorCode.AUTHENTICATION_FAILED },
+				});
 			}
+
+			const fullUser = await User.findById(user.id);
+			if (!fullUser) {
+				throw new GraphQLError('User not found.', {
+					extensions: { code: 'NOT_FOUND' },
+				});
+			}
+
+			return fullUser;
 		},
-		listUsers: async () => {
-			try {
-				const users = await User.find();
-				return formatResponse(200, 'Users retrieved successfully.', users);
-			} catch (err) {
-				return formatResponse(500, err.message || 'Failed to fetch users.');
-			}
+
+		users: async () => {
+			const users = await User.find();
+			return users;
 		},
 	},
+
 	Mutation: {
-		register: async (_, args) => registerUser(args),
-		login: async (_, args, { res }) => loginUser(args, { res }),
+		register: (_, args) => registerUser(args),
+		login: (_, args, { res }) => loginUser(args, { res }),
 		refreshToken: async (_, __, { req, res }) => {
 			try {
 				const token = req.cookies.refreshToken;
-				if (!token) {
-					throw new AuthenticationError('No refresh token found. Please log in again.');
-				}
+				if (!token) throw new AuthenticationError('No refresh token found.');
 
 				const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
-
-				if (!decoded || !decoded.id || !decoded.email) {
-					throw new AuthenticationError('Invalid token payload.');
+				if (!decoded?.id || !decoded?.email) {
+					throw new AuthenticationError('Invalid refresh token.');
 				}
 
 				const newAccessToken = generateAccessToken({
@@ -56,6 +48,7 @@ const userResolvers = {
 					email: decoded.email,
 				});
 
+				// set new access token cookie
 				res.cookie('accessToken', newAccessToken, {
 					httpOnly: true,
 					secure: process.env.NODE_ENV === 'production',
@@ -63,21 +56,26 @@ const userResolvers = {
 					maxAge: 15 * 60 * 1000, // 15 min
 				});
 
-				return formatResponse(200, 'Access token refreshed.');
+				return { success: true, message: 'Access token refreshed.' };
 			} catch (err) {
-				throw new AuthenticationError('Invalid or expired refresh token. Please log in again.');
+				throw new AuthenticationError('Session expired. Please log in again.');
 			}
 		},
-		logout: async (_, __, { res }) => {
+
+		logout: (_, __, { res }) => {
 			res.clearCookie('accessToken');
 			res.clearCookie('refreshToken');
-			return formatResponse(200, 'Logged out successfully');
+			return { message: 'Logged out successfully' };
 		},
-		forgotPassword: async (_, args) => forgotPassword(args),
-		resetPassword: async (_, args) => resetPassword(args),
-		updateProfile: async (_, args, { user }) => {
+
+		forgotPassword: (_, args) => forgotPassword(args),
+		resetPassword: (_, args) => resetPassword(args),
+
+		updateProfile: (_, args, { user }) => {
 			if (!user) {
-				return formatResponse(401, 'Unauthorized.');
+				throw new GraphQLError('Unauthorized.', {
+					extensions: { code: ApolloServerErrorCode.AUTHENTICATION_FAILED },
+				});
 			}
 			return updateProfile(user.id, args);
 		},

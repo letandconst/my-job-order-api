@@ -2,7 +2,6 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 const { registerSchema, loginSchema, updateProfileSchema } = require('../validators/userValidator');
-const { formatResponse } = require('../utils/response');
 const { sendTemplateMail } = require('../services/mail.service');
 const { generateAccessToken, generateRefreshToken } = require('../utils/token');
 const { GraphQLError } = require('graphql');
@@ -16,206 +15,170 @@ const generateResetToken = (user) => {
 // ----------------------
 // Register User
 // ----------------------
-
 const registerUser = async ({ firstName, lastName, username, email, password, avatar }) => {
-	try {
-		await registerSchema.validate({ username, email, password, avatar });
+	await registerSchema.validate({ username, email, password, avatar });
 
-		const existingUser = await User.findOne({ $or: [{ email }, { username }] });
-		if (existingUser) {
-			return formatResponse(409, 'Email or Username already taken.');
-		}
-
-		let avatarUrl = null;
-		if (avatar) {
-			avatarUrl = avatar;
-		}
-
-		const user = await User.create({
-			firstName,
-			lastName,
-			username,
-			email,
-			password,
-			avatar: avatarUrl,
-		});
-
-		const token = generateToken(user);
-
-		return formatResponse(201, 'User registered successfully.', { user, token });
-	} catch (err) {
-		return formatResponse(400, err.message || 'Registration failed.');
+	const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+	if (existingUser) {
+		throw new GraphQLError('Email or Username already taken.', { extensions: { code: 'CONFLICT' } });
 	}
+
+	const user = await User.create({
+		firstName,
+		lastName,
+		username,
+		email,
+		password,
+		avatar: avatar || null,
+	});
+
+	const token = generateAccessToken(user);
+
+	return { user, token, message: 'User registered successfully.' };
 };
 
 // ----------------------
 // Login User
 // ----------------------
-
 const loginUser = async ({ email, username, password }, { res }) => {
-	try {
-		// Validate input
-		await loginSchema.validate({ email, username, password });
+	await loginSchema.validate({ email, username, password });
 
-		if (!email && !username) {
-			return formatResponse(400, 'Please provide either an email or username.');
-		}
-
-		// Find user by email or username
-		const user = await User.findOne({
-			$or: [{ email }, { username }],
-		});
-
-		if (!user) {
-			return formatResponse(404, 'No account found with this email or username.');
-		}
-
-		// Validate password
-		const isMatch = await user.matchPassword(password);
-		if (!isMatch) {
-			return formatResponse(401, 'Incorrect password.');
-		}
-
-		// Generate tokens
-		const accessToken = generateAccessToken(user);
-		const refreshToken = generateRefreshToken(user);
-
-		// Store tokens in cookies
-		res.cookie('accessToken', accessToken, {
-			httpOnly: true,
-			secure: process.env.NODE_ENV === 'production',
-			sameSite: 'strict',
-			maxAge: 15 * 60 * 1000, // 15 min
-		});
-
-		res.cookie('refreshToken', refreshToken, {
-			httpOnly: true,
-			secure: process.env.NODE_ENV === 'production',
-			sameSite: 'strict',
-			maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-		});
-
-		// Return user info only
-		return formatResponse(200, 'Login successful.', { user });
-	} catch (err) {
-		return formatResponse(400, err.message || 'Login failed.');
+	if (!email && !username) {
+		throw new GraphQLError('Please provide either an email or username.', { extensions: { code: 'BAD_USER_INPUT' } });
 	}
+
+	const user = await User.findOne({ $or: [{ email }, { username }] });
+	if (!user) {
+		throw new GraphQLError('No account found with this email or username.', { extensions: { code: 'NOT_FOUND' } });
+	}
+
+	const isMatch = await user.matchPassword(password);
+	if (!isMatch) {
+		throw new GraphQLError('Incorrect password.', { extensions: { code: ApolloServerErrorCode.BAD_USER_INPUT } });
+	}
+
+	const accessToken = generateAccessToken(user);
+	const refreshToken = generateRefreshToken(user);
+
+	// Store tokens in cookies
+	res.cookie('accessToken', accessToken, {
+		httpOnly: true,
+		secure: process.env.NODE_ENV === 'production',
+		sameSite: 'strict',
+		maxAge: 15 * 60 * 1000, // 15 min
+	});
+
+	res.cookie('refreshToken', refreshToken, {
+		httpOnly: true,
+		secure: process.env.NODE_ENV === 'production',
+		sameSite: 'strict',
+		maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+	});
+
+	return { user, token: accessToken, message: 'Login successful.' };
 };
 
 // ----------------------
 // Forgot Password
 // ----------------------
-
 const forgotPassword = async ({ email }) => {
-	try {
-		const user = await User.findOne({ email });
-		if (!user) {
-			return formatResponse(404, 'No account found with this email.');
-		}
-
-		const resetToken = generateResetToken(user);
-		const resetLink = `${process.env.FRONTEND_URL}/auth/reset-password?token=${resetToken}`;
-
-		// send using Brevo template
-		const mailResult = await sendTemplateMail({
-			to: user.email,
-			templateId: parseInt(process.env.BREVO_RESET_TEMPLATE_ID),
-			params: {
-				FIRSTNAME: user.firstName,
-				RESET_LINK: resetLink,
-			},
-		});
-
-		if (!mailResult.success) {
-			return formatResponse(500, 'Failed to send reset email.');
-		}
-
-		return formatResponse(200, 'Password reset link sent to your email.');
-	} catch (err) {
-		return formatResponse(500, err.message || 'Failed to generate reset token.');
+	const user = await User.findOne({ email });
+	if (!user) {
+		throw new GraphQLError('No account found with this email.', { extensions: { code: 'NOT_FOUND' } });
 	}
+
+	const resetToken = generateResetToken(user);
+	const resetLink = `${process.env.FRONTEND_URL}/auth/reset-password?token=${resetToken}`;
+
+	// send using Brevo template
+	const mailResult = await sendTemplateMail({
+		to: user.email,
+		templateId: parseInt(process.env.BREVO_RESET_TEMPLATE_ID),
+		params: {
+			FIRSTNAME: user.firstName,
+			RESET_LINK: resetLink,
+		},
+	});
+
+	if (!mailResult.success) {
+		throw new GraphQLError('Failed to send reset email.', { extensions: { code: 'INTERNAL_SERVER_ERROR' } });
+	}
+
+	return { message: 'Password reset link sent to your email.' };
 };
 
 // ----------------------
 // Reset Password
 // ----------------------
-
 const resetPassword = async ({ token, newPassword }) => {
+	let decoded;
 	try {
-		const decoded = jwt.verify(token, process.env.JWT_SECRET);
-		const user = await User.findById(decoded.id);
-		if (!user) {
-			return formatResponse(400, 'Invalid or expired token.');
-		}
-
-		user.password = newPassword;
-		await user.save();
-
-		return formatResponse(200, 'Password reset successful.');
-	} catch (err) {
-		return formatResponse(400, err.message || 'Password reset failed. Token may be invalid or expired.');
+		decoded = jwt.verify(token, process.env.JWT_SECRET);
+	} catch {
+		throw new GraphQLError('Invalid or expired reset token.', { extensions: { code: 'UNAUTHENTICATED' } });
 	}
+
+	const user = await User.findById(decoded.id);
+	if (!user) {
+		throw new GraphQLError('Invalid or expired reset token.', { extensions: { code: 'NOT_FOUND' } });
+	}
+
+	user.password = newPassword;
+	await user.save();
+
+	return { message: 'Password reset successful.' };
 };
+
 // ----------------------
 // Update Profile
 // ----------------------
-
 const updateProfile = async (userId, args) => {
-	try {
-		await updateProfileSchema.validate(args);
+	await updateProfileSchema.validate(args);
 
-		const user = await User.findById(userId);
-		if (!user) {
-			return formatResponse(404, 'User not found.');
-		}
-
-		let updatedSensitive = false;
-
-		if (args.email && args.email !== user.email) {
-			const existingUser = await User.findOne({ email: args.email });
-			if (existingUser) {
-				return formatResponse(409, 'Email already exists.');
-			}
-			user.email = args.email;
-			updatedSensitive = true;
-		}
-
-		if (args.password) {
-			user.password = args.password;
-			updatedSensitive = true;
-		}
-
-		if ('avatar' in args) {
-			user.avatar = args.avatar ?? null;
-		}
-
-		await user.save();
-
-		let token = null;
-		if (updatedSensitive) {
-			token = generateAccessToken(user);
-		}
-
-		return formatResponse(200, 'Profile updated successfully.', { user, token });
-	} catch (err) {
-		return formatResponse(400, err.message || 'Profile update failed.');
+	const user = await User.findById(userId);
+	if (!user) {
+		throw new GraphQLError('User not found.', { extensions: { code: 'NOT_FOUND' } });
 	}
+
+	let updatedSensitive = false;
+
+	if (args.email && args.email !== user.email) {
+		const existingUser = await User.findOne({ email: args.email });
+		if (existingUser) {
+			throw new GraphQLError('Email already exists.', { extensions: { code: 'CONFLICT' } });
+		}
+		user.email = args.email;
+		updatedSensitive = true;
+	}
+
+	if (args.password) {
+		user.password = args.password;
+		updatedSensitive = true;
+	}
+
+	if ('avatar' in args) {
+		user.avatar = args.avatar ?? null;
+	}
+
+	await user.save();
+
+	let token = null;
+	if (updatedSensitive) {
+		token = generateAccessToken(user);
+	}
+
+	return { user, token, message: 'Profile updated successfully.' };
 };
 
 // ----------------------
 // Verify Token
 // ----------------------
-
 const verifyToken = (token) => {
 	try {
 		return jwt.verify(token, process.env.JWT_SECRET);
-	} catch (err) {
-		console.error('Token verification failed:', err);
-
+	} catch {
 		throw new GraphQLError('Session expired or invalid token.', {
-			extensions: {
-				code: ApolloServerErrorCode.AUTHENTICATION_FAILED,
-			},
+			extensions: { code: ApolloServerErrorCode.AUTHENTICATION_FAILED },
 		});
 	}
 };

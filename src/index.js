@@ -8,19 +8,16 @@ require('dotenv').config();
 
 const typeDefs = require('./graphql/typeDefs');
 const resolvers = require('./graphql/resolvers');
-const { authMiddleware } = require('./middlewares/auth');
-require('./config/db')(); // connect to MongoDB
+require('./config/db')();
+
+const { verifyToken } = require('./services/auth.service');
 
 const app = express();
 const port = process.env.PORT || 4000;
 
-const { verifyToken } = require('./services/auth.service');
-
-// Apollo Server setup
 const server = new ApolloServer({
 	typeDefs,
 	resolvers,
-	context: authMiddleware,
 });
 
 (async () => {
@@ -32,7 +29,6 @@ const server = new ApolloServer({
 			credentials: true,
 		})
 	);
-	app.use(express.json());
 	app.use(cookieParser());
 
 	app.use(
@@ -40,7 +36,7 @@ const server = new ApolloServer({
 		expressMiddleware(server, {
 			context: async ({ req, res }) => {
 				let user = null;
-				// First check for accessToken cookie
+
 				if (req.cookies?.accessToken) {
 					user = verifyToken(req.cookies.accessToken, process.env.JWT_SECRET);
 				}
