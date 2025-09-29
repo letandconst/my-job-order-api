@@ -36,11 +36,17 @@ const userResolvers = {
 		refreshToken: async (_, __, { req, res }) => {
 			try {
 				const token = req.cookies.refreshToken;
-				if (!token) throw new AuthenticationError('No refresh token found.');
+				if (!token) {
+					throw new GraphQLError('No refresh token found.', {
+						extensions: { code: 'UNAUTHENTICATED' },
+					});
+				}
 
 				const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
 				if (!decoded?.id || !decoded?.email) {
-					throw new AuthenticationError('Invalid refresh token.');
+					throw new GraphQLError('Invalid refresh token.', {
+						extensions: { code: 'UNAUTHENTICATED' },
+					});
 				}
 
 				const newAccessToken = generateAccessToken({
@@ -48,7 +54,6 @@ const userResolvers = {
 					email: decoded.email,
 				});
 
-				// set new access token cookie
 				res.cookie('accessToken', newAccessToken, {
 					httpOnly: true,
 					secure: process.env.NODE_ENV === 'production',
@@ -58,7 +63,9 @@ const userResolvers = {
 
 				return { success: true, message: 'Access token refreshed.' };
 			} catch (err) {
-				throw new AuthenticationError('Session expired. Please log in again.');
+				throw new GraphQLError('Session expired. Please log in again.', {
+					extensions: { code: 'UNAUTHENTICATED' },
+				});
 			}
 		},
 
