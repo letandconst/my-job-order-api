@@ -1,98 +1,102 @@
 const Mechanic = require('../models/Mechanic');
 const { mechanicSchema, updateMechanicSchema } = require('../validators/mechanicValidator');
-const { formatResponse } = require('../utils/response');
 
-const createMechanic = async (args) => {
+const createMechanic = async (input) => {
 	try {
-		await mechanicSchema.validate(args);
+		await mechanicSchema.validate(input, { abortEarly: false });
 
 		const existingMechanic = await Mechanic.findOne({
-			name: args.name,
-			birthday: args.birthday,
+			name: input.name,
+			birthday: input.birthday,
 		});
 
 		if (existingMechanic) {
-			return formatResponse(409, 'A mechanic with this details already exists.');
+			throw new Error('A mechanic with these details already exists.');
 		}
 
 		const mechanic = await Mechanic.create({
-			name: args.name,
-			address: args.address,
-			phoneNumber: args.phoneNumber,
-			birthday: args.birthday,
+			name: input.name,
+			address: input.address,
+			phoneNumber: input.phoneNumber,
+			birthday: input.birthday,
 			emergencyContact: {
-				name: args.emergencyContactName,
-				phoneNumber: args.emergencyContactPhone,
+				name: input.emergencyContactName,
+				phoneNumber: input.emergencyContactPhone,
 			},
-			bio: args.bio,
-			avatar: args.avatar,
-			specialties: args.specialties,
-			dateJoined: args.dateJoined || Date.now(),
+			bio: input.bio,
+			avatar: input.avatar,
+			specialties: input.specialties,
+			dateJoined: input.dateJoined || Date.now(),
 		});
 
-		await mechanic.save();
-		return formatResponse(201, 'Mechanic created successfully.', { mechanic });
+		return mechanic;
 	} catch (err) {
-		return formatResponse(400, err.message || 'Failed to create mechanic.');
+		throw new Error(err.message || 'Failed to create mechanic');
 	}
 };
 
 const getMechanics = async () => {
 	try {
-		const mechanics = await Mechanic.find();
-		return formatResponse(200, 'Mechanics retrieved successfully.', mechanics);
+		return await Mechanic.find().lean();
 	} catch (err) {
-		return formatResponse(500, err.message || 'Failed to fetch mechanics.');
+		throw new Error(err.message || 'Failed to fetch mechanics');
 	}
 };
 
 const getMechanicById = async (id) => {
 	try {
-		const mechanic = await Mechanic.findById(id);
+		const mechanic = await Mechanic.findById(id).lean();
 		if (!mechanic) {
-			return formatResponse(404, 'Mechanic not found.');
+			throw new Error('Mechanic not found');
 		}
-		return formatResponse(200, 'Mechanic retrieved successfully.', { mechanic });
+		return mechanic;
 	} catch (err) {
-		return formatResponse(500, err.message || 'Failed to fetch mechanic.');
+		throw new Error(err.message || 'Failed to fetch mechanic');
 	}
 };
 
-const updateMechanic = async (id, args) => {
+const updateMechanic = async (input) => {
 	try {
-		await updateMechanicSchema.validate(args);
+		await updateMechanicSchema.validate(input, { abortEarly: false });
+		const { id, ...updateData } = input;
 
 		const mechanic = await Mechanic.findById(id);
 		if (!mechanic) {
-			return formatResponse(404, 'Mechanic not found.');
+			throw new Error('Mechanic not found');
 		}
 
-		// Check for duplicate (name + birthday)
-		if ((args.name || args.birthday) && (args.name !== mechanic.name || args.birthday !== mechanic.birthday)) {
+		// Check for duplicates
+		if ((updateData.name || updateData.birthday) && (updateData.name !== mechanic.name || updateData.birthday !== mechanic.birthday)) {
 			const duplicate = await Mechanic.findOne({
-				name: args.name || mechanic.name,
-				birthday: args.birthday || mechanic.birthday,
+				name: updateData.name || mechanic.name,
+				birthday: updateData.birthday || mechanic.birthday,
 				_id: { $ne: id },
 			});
 			if (duplicate) {
-				return formatResponse(409, 'Another mechanic with this details already exists.');
+				throw new Error('Another mechanic with these details already exists.');
 			}
 		}
 
+		// Update simple fields
 		const mutableFields = ['name', 'address', 'phoneNumber', 'bio', 'avatar', 'specialties', 'dateJoined'];
-
 		mutableFields.forEach((field) => {
-			if (args[field] !== undefined) mechanic[field] = args[field];
+			if (updateData[field] !== undefined) {
+				mechanic[field] = updateData[field];
+			}
 		});
 
-		if (args.emergencyContactName !== undefined) mechanic.emergencyContact.name = args.emergencyContactName;
-		if (args.emergencyContactPhone !== undefined) mechanic.emergencyContact.phoneNumber = args.emergencyContactPhone;
+		// Update nested emergency contact
+		if (updateData.emergencyContactName !== undefined) {
+			mechanic.emergencyContact.name = updateData.emergencyContactName;
+		}
+		if (updateData.emergencyContactPhone !== undefined) {
+			mechanic.emergencyContact.phoneNumber = updateData.emergencyContactPhone;
+		}
 
 		await mechanic.save();
-
-		return formatResponse(200, 'Mechanic updated successfully.', { mechanic });
+		return mechanic;
 	} catch (err) {
-		return formatResponse(400, err.message || 'Failed to update mechanic.');
+		throw new Error(err.message || 'Failed to update mechanic');
 	}
 };
 
@@ -100,11 +104,11 @@ const deleteMechanic = async (id) => {
 	try {
 		const mechanic = await Mechanic.findByIdAndDelete(id);
 		if (!mechanic) {
-			return formatResponse(404, 'Mechanic not found.');
+			throw new Error('Mechanic not found');
 		}
-		return formatResponse(200, 'Mechanic deleted successfully.', { mechanic });
+		return true;
 	} catch (err) {
-		return formatResponse(500, err.message || 'Failed to delete mechanic.');
+		throw new Error(err.message || 'Failed to delete mechanic');
 	}
 };
 

@@ -2,12 +2,12 @@ const { createMechanic, getMechanics, getMechanicById, updateMechanic, deleteMec
 
 const mechanicResolvers = {
 	Query: {
-		listMechanics: async () => getMechanics(),
-		listMechanic: async (_, { id }) => getMechanicById(id),
+		mechanics: async () => getMechanics(),
+		mechanic: async (_, { id }) => getMechanicById(id),
 	},
 	Mutation: {
 		createMechanic: async (_, { input }) => createMechanic(input),
-		updateMechanic: async (_, { id, ...args }) => updateMechanic(id, args),
+		updateMechanic: async (_, { input }) => updateMechanic(input),
 		deleteMechanic: async (_, { id }) => deleteMechanic(id),
 	},
 };
