@@ -37,7 +37,7 @@ const serviceTypeDefs = gql`
 	}
 
 	input UpdateServiceTypeInput {
-		serviceTypeId: String
+		serviceTypeId: ID!
 		description: String
 		isActive: Boolean
 		category: String
@@ -45,13 +45,13 @@ const serviceTypeDefs = gql`
 	}
 
 	extend type Query {
-		services: BaseResponse!
-		service(id: ID!): BaseResponse!
+		services: [ServiceType!]!
+		service(id: ID!): ServiceType
 	}
 
 	extend type Mutation {
-		createServiceType(input: CreateServiceTypeInput!): BaseResponse!
-		updateServiceType(input: UpdateServiceTypeInput!): BaseResponse!
+		createServiceType(input: CreateServiceTypeInput!): ServiceType!
+		updateServiceType(input: UpdateServiceTypeInput!): ServiceType!
 	}
 `;
 

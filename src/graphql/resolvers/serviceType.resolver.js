@@ -1,12 +1,13 @@
-const { createServiceType, getServiceTypes, updateServiceType } = require('../../services/serviceType.service');
+const { createServiceType, getServiceTypes, updateServiceType, getServiceTypeById } = require('../../services/serviceType.service');
 
 const serviceTypeResolvers = {
 	Query: {
-		services: async () => await getServiceTypes(),
+		services: () => getServiceTypes(),
+		service: (_, { id }) => getServiceTypeById(id),
 	},
 	Mutation: {
-		createServiceType: async (_, { input }) => await createServiceType(input),
-		updateServiceType: async (_, { input }) => await updateServiceType(input),
+		createServiceType: (_, { input }) => createServiceType(input),
+		updateServiceType: (_, { input }) => updateServiceType(input),
 	},
 };
 

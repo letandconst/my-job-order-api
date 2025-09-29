@@ -2,14 +2,14 @@ const { createPart, updatePart, deletePart, getParts, getPartById, consumeStock,
 
 const partResolvers = {
 	Query: {
-		parts: async () => getParts(),
-		part: async (_, { id }) => getPartById(id),
-		lowStockParts: async () => getLowStockParts(),
+		parts: () => getParts(),
+		part: (_, { id }) => getPartById(id),
+		lowStockParts: () => getLowStockParts(),
 	},
 	Mutation: {
-		createPart: async (_, { input }) => createPart(input),
-		updatePart: async (_, { id, input }) => updatePart(id, input),
-		deletePart: async (_, { id }) => deletePart(id),
+		createPart: (_, { input }) => createPart(input),
+		updatePart: (_, { id, input }) => updatePart(id, input),
+		deletePart: (_, { id }) => deletePart(id),
 	},
 };
 
