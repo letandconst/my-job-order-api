@@ -1,28 +1,29 @@
 const Client = require('../models/Client');
 const clientValidator = require('../validators/clientValidator');
-const { formatResponse } = require('../utils/response');
 const JobOrder = require('../models/JobOrder');
 
 // Create a new client
-const createClient = async (input) => {
+const createClient = async (_, { input }) => {
 	try {
 		await clientValidator.validate(input, { abortEarly: false });
 		const client = await Client.create(input);
-		return formatResponse(200, 'Client created successfully', client);
+		return client.toObject();
 	} catch (err) {
-		return formatResponse(400, err.message || 'Failed to create client');
+		throw new Error(err.message || 'Failed to create client');
 	}
 };
 
 // Update an existing client
-const updateClient = async (input) => {
+const updateClient = async (_, { input }) => {
 	const { clientId, ...updateData } = input;
 	try {
-		const client = await Client.findByIdAndUpdate(clientId, updateData, { new: true });
-		if (!client) return formatResponse(404, 'Client not found');
-		return formatResponse(200, 'Client updated successfully', client);
+		const client = await Client.findByIdAndUpdate(clientId, updateData, { new: true }).lean();
+		if (!client) {
+			throw new Error('Client not found');
+		}
+		return client;
 	} catch (err) {
-		return formatResponse(400, err.message || 'Failed to update client');
+		throw new Error(err.message || 'Failed to update client');
 	}
 };
 
@@ -31,9 +32,9 @@ const getClients = async () => {
 	try {
 		const clients = await Client.find().lean();
 
-		const clientFullView = await Promise.all(
+		return Promise.all(
 			clients.map(async (client) => {
-				const jobOrders = await JobOrder.find({ client: client._id }).populate('car').populate('assignedMechanic', 'name').populate('workRequested.service', 'name').sort({ createdAt: -1 });
+				const jobOrders = await JobOrder.find({ client: client._id }).populate('car').populate('assignedMechanic', 'name').populate('workRequested.service', 'name').sort({ createdAt: -1 }).lean();
 
 				return {
 					...client,
@@ -42,21 +43,28 @@ const getClients = async () => {
 				};
 			})
 		);
-
-		return formatResponse(200, 'Clients fetched successfully', clientFullView);
 	} catch (err) {
-		return formatResponse(400, err.message || 'Failed to fetch clients');
+		throw new Error(err.message || 'Failed to fetch clients');
 	}
 };
 
 // Get a client by ID
-const getClientById = async (id) => {
+const getClientById = async (_, { id }) => {
 	try {
-		const client = await Client.findById(id);
-		if (!client) return formatResponse(404, 'Client not found');
-		return formatResponse(200, 'Client fetched successfully', client);
+		const client = await Client.findById(id).lean();
+		if (!client) {
+			throw new Error('Client not found');
+		}
+
+		const jobOrders = await JobOrder.find({ client: client._id }).populate('car').populate('assignedMechanic', 'name').populate('workRequested.service', 'name').sort({ createdAt: -1 }).lean();
+
+		return {
+			...client,
+			lastService: jobOrders[0]?.createdAt || null,
+			jobHistory: jobOrders,
+		};
 	} catch (err) {
-		return formatResponse(400, err.message || 'Failed to fetch client');
+		throw new Error(err.message || 'Failed to fetch client');
 	}
 };
 

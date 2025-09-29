@@ -11,7 +11,7 @@ const clientTypeDefs = gql`
 		createdAt: String!
 		updatedAt: String!
 		lastService: String
-		jobHistory: [JobOrder!]!
+		jobHistory: [JobOrder!]
 	}
 
 	type Car {
@@ -47,13 +47,13 @@ const clientTypeDefs = gql`
 	}
 
 	type Query {
-		clients: BaseResponse!
-		client(id: ID!): BaseResponse!
+		clients: [Client!]!
+		client(id: ID!): Client
 	}
 
 	type Mutation {
-		createClient(input: CreateClientInput!): BaseResponse!
-		updateClient(input: UpdateClientInput!): BaseResponse!
+		createClient(input: CreateClientInput!): Client!
+		updateClient(input: UpdateClientInput!): Client!
 	}
 `;
 
