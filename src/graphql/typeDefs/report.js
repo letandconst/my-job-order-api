@@ -23,7 +23,7 @@ const reportTypeDefs = gql`
 	}
 
 	extend type Query {
-		jobOrderReport(period: String, mechanicId: ID, serviceType: String): BaseResponse
+		jobOrderReport(period: String, mechanicId: ID, serviceType: String): ReportSummary!
 	}
 `;
 
