@@ -37,7 +37,7 @@ const createMechanic = async (input) => {
 
 const getMechanics = async () => {
 	try {
-		return await Mechanic.find().lean();
+		return await Mechanic.find();
 	} catch (err) {
 		throw new Error(err.message || 'Failed to fetch mechanics');
 	}
@@ -45,11 +45,16 @@ const getMechanics = async () => {
 
 const getMechanicById = async (id) => {
 	try {
-		const mechanic = await Mechanic.findById(id).lean();
+		const mechanic = await Mechanic.findById(id).lean({ virtuals: true });
 		if (!mechanic) {
 			throw new Error('Mechanic not found');
 		}
-		return mechanic;
+		return {
+			...mechanic,
+
+			dateJoined: mechanic.dateJoined ? new Date(mechanic.dateJoined).toISOString() : null,
+			birthday: mechanic.birthday ? new Date(mechanic.birthday).toISOString() : null,
+		};
 	} catch (err) {
 		throw new Error(err.message || 'Failed to fetch mechanic');
 	}
